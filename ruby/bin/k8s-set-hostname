@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+
+require "/usr/local/lib/k8s_node_info"
+include K8sNodeInfo
+
+def run!
+  validate_running_as_root
+  set_hostname
+end
+
+def set_hostname
+  return if `hostname`.chomp == instance.private_dns_name
+  raise "hostname could not be set to #{instance.private_dns_name}" unless system('hostnamectl', 'set-hostname', instance.private_dns_name)
+end
+
+run!
