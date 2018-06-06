@@ -1,0 +1,14 @@
+[Unit]
+Description=Configure Kubernetes EKS Node
+Before=kubelet.service
+
+[Service]
+Type=simple
+RemainAfterExit=true
+Restart=on-failure
+RestartSec=5
+ExecStartPre=/usr/local/bin/eks-node-config
+ExecStart=/bin/echo "eks node is configured"
+
+[Install]
+WantedBy=multi-user.target
