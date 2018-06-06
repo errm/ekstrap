@@ -34,6 +34,31 @@ users:
         - "-i"
         - "{{.ClusterName}}"
 `))
+var kubeletService = template.Must(template.New("kubelet-service").Parse(`
+[Unit]
+Description=kubelet: The Kubernetes Node Agent
+Documentation=http://kubernetes.io/docs/
+After=docker.service
+Requires=docker.service
+
+[Service]
+ExecStart=/usr/bin/kubelet   --address=0.0.0.0   --allow-privileged=true   --cloud-provider=aws   --cluster-dns=10.100.0.10   --cluster-domain=cluster.local   --cni-bin-dir=/opt/cni/bin   --cni-conf-dir=/etc/cni/net.d   --container-runtime=docker   --node-ip={{.NodeIP}}   --network-plugin=cni   --cgroup-driver=cgroupfs   --register-node=true   --kubeconfig=/var/lib/kubelet/kubeconfig   --feature-gates=RotateKubeletServerCertificate=true   --anonymous-auth=false   --client-ca-file=/etc/kubernetes/pki/ca.crt
+
+Restart=on-failure
+Restart=always
+StartLimitInterval=0
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+`))
+
+type node struct {
+	ClusterName     string
+	Endpoint        string
+	CertificateData string
+	NodeIP          string
+}
 
 func main() {
 	svc := eks.New(sess)
