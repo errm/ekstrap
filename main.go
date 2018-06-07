@@ -158,9 +158,28 @@ func runCommand(name string, args ...string) error {
 	return cmd.Run()
 }
 
+func currentHostname() (string, error) {
+	currentHostname, err := exec.Command("hostname").Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(currentHostname[:])), nil
+}
+
+func setHostname(hostname string) error {
+	if currHostname, err := currentHostname(); err != nil || currHostname == hostname {
+		return err
+	}
+	log.Printf("setting hostname to %s", hostname)
+	return runCommand("hostnamectl", "set-hostname", hostname)
+}
+
 func main() {
 	instance, err := Instance()
 	if err != nil {
+		log.Fatal(err)
+	}
+	if err = setHostname(*instance.PrivateDnsName); err != nil {
 		log.Fatal(err)
 	}
 	ip := *instance.PrivateIpAddress
