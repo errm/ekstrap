@@ -1,16 +1,27 @@
 package main
 
 import (
-	"fmt"
-	"github.com/aws/aws-sdk-go/aws/awserr"
+	"encoding/base64"
+	"errors"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/eks"
+	"io"
+	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strings"
 	"text/template"
 )
 
-var sess = session.Must(session.NewSession())
-var kubeconfig = template.Must(template.New("kubeconfig").Parse(`
-apiVersion: v1
+var metadata = ec2metadata.New(session.Must(session.NewSession()))
+
+var kubeconfig = template.Must(template.New("kubeconfig").Parse(
+	`apiVersion: v1
 kind: Config
 clusters:
 - name: {{.ClusterName}}
@@ -34,8 +45,9 @@ users:
         - "-i"
         - "{{.ClusterName}}"
 `))
-var kubeletService = template.Must(template.New("kubelet-service").Parse(`
-[Unit]
+
+var kubeletService = template.Must(template.New("kubelet-service").Parse(
+	`[Unit]
 Description=kubelet: The Kubernetes Node Agent
 Documentation=http://kubernetes.io/docs/
 After=docker.service
@@ -53,6 +65,13 @@ RestartSec=10
 WantedBy=multi-user.target
 `))
 
+var sess = session.Must(session.NewSession(&aws.Config{
+	Region: aws.String(Region()),
+}))
+
+var client = ec2.New(sess)
+var id = InstanceId()
+
 type node struct {
 	ClusterName     string
 	Endpoint        string
@@ -60,32 +79,118 @@ type node struct {
 	NodeIP          string
 }
 
-func main() {
-	svc := eks.New(sess)
-	input := &eks.ListClustersInput{}
-
-	result, err := svc.ListClusters(input)
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case eks.ErrCodeInvalidParameterException:
-				fmt.Println(eks.ErrCodeInvalidParameterException, aerr.Error())
-			case eks.ErrCodeClientException:
-				fmt.Println(eks.ErrCodeClientException, aerr.Error())
-			case eks.ErrCodeServerException:
-				fmt.Println(eks.ErrCodeServerException, aerr.Error())
-			case eks.ErrCodeServiceUnavailableException:
-				fmt.Println(eks.ErrCodeServiceUnavailableException, aerr.Error())
-			default:
-				fmt.Println(aerr.Error())
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-		}
-		return
+func Region() string {
+	result, e := metadata.GetMetadata("placement/availability-zone")
+	if e != nil {
+		log.Fatal(e)
 	}
+	return result[:len(result)-1]
+}
 
-	fmt.Println(result)
+func InstanceId() string {
+	result, e := metadata.GetMetadata("instance-id")
+	if e != nil {
+		log.Fatal(e)
+	}
+	return result
+}
+
+func Instance() (*ec2.Instance, error) {
+	output, err := client.DescribeInstances(&ec2.DescribeInstancesInput{InstanceIds: []*string{&id}})
+	if err != nil {
+		return nil, err
+	}
+	return output.Reservations[0].Instances[0], nil
+}
+
+func EKSClusterName(instance *ec2.Instance) (string, error) {
+	re := regexp.MustCompile(`kubernetes.io\/cluster\/([\w-]+)`)
+	for _, t := range instance.Tags {
+		if matches := re.FindStringSubmatch(*t.Key); len(matches) == 2 {
+			return matches[1], nil
+		}
+	}
+	return "", errors.New("kubernetes.io/cluster/<name> tag not set on instance")
+}
+
+func EKSCluster(name string) (*eks.Cluster, error) {
+	eksClient := eks.New(sess)
+	input := &eks.DescribeClusterInput{
+		Name: aws.String(name),
+	}
+	result, err := eksClient.DescribeCluster(input)
+	if err != nil {
+		return nil, err
+	}
+	return result.Cluster, nil
+}
+
+func writeConfig(path string, templ *template.Template, data interface{}) error {
+	directory := filepath.Dir(path)
+	err := os.MkdirAll(directory, 0710)
+	if err != nil {
+		return err
+	}
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0640)
+	if err != nil {
+		return err
+	}
+	return templ.Execute(file, data)
+}
+
+func writeCertificate(path string, data string) error {
+	directory := filepath.Dir(path)
+	err := os.MkdirAll(directory, 0710)
+	if err != nil {
+		return err
+	}
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0640)
+	if err != nil {
+		return err
+	}
+	decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(data))
+	_, err = io.Copy(file, decoder)
+	return err
+}
+
+func runCommand(name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	return cmd.Run()
+}
+
+func main() {
+	instance, err := Instance()
+	if err != nil {
+		log.Fatal(err)
+	}
+	ip := *instance.PrivateIpAddress
+	name, err := EKSClusterName(instance)
+	if err != nil {
+		log.Fatal(err)
+	}
+	cluster, err := EKSCluster(name)
+	if err != nil {
+		log.Fatal(err)
+	}
+	info := node{
+		ClusterName:     name,
+		Endpoint:        *cluster.Endpoint,
+		CertificateData: *cluster.CertificateAuthority.Data,
+		NodeIP:          ip,
+	}
+	if err = writeConfig("/var/lib/kubelet/kubeconfig", kubeconfig, info); err != nil {
+		log.Fatal(err)
+	}
+	if err = writeConfig("/lib/systemd/system/kubelet.service", kubeletService, info); err != nil {
+		log.Fatal(err)
+	}
+	if err = writeCertificate("/etc/kubernetes/pki/ca.crt", info.CertificateData); err != nil {
+		log.Fatal(err)
+	}
+	if err = runCommand("systemctl", "daemon-reload"); err != nil {
+		log.Fatal(err)
+	}
+	if err = runCommand("systemctl", "restart", "kubelet.service"); err != nil {
+		log.Fatal(err)
+	}
 }
