@@ -3,11 +3,6 @@ package main
 import (
 	"encoding/base64"
 	"errors"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/eks"
 	"io"
 	"log"
 	"os"
@@ -16,6 +11,12 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/eks"
 )
 
 var metadata = ec2metadata.New(session.Must(session.NewSession()))
@@ -158,16 +159,8 @@ func runCommand(name string, args ...string) error {
 	return cmd.Run()
 }
 
-func currentHostname() (string, error) {
-	currentHostname, err := exec.Command("hostname").Output()
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(currentHostname[:])), nil
-}
-
 func setHostname(hostname string) error {
-	if currHostname, err := currentHostname(); err != nil || currHostname == hostname {
+	if currHostname, err := os.Hostname(); err != nil || currHostname == hostname {
 		return err
 	}
 	log.Printf("setting hostname to %s", hostname)
