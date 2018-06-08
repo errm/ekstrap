@@ -13,11 +13,13 @@ import (
 	"syscall"
 	"text/template"
 
+	"github.com/errm/ekstrap/pkg/eks"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/eks"
+	eksSvc "github.com/aws/aws-sdk-go/service/eks"
 )
 
 var metadata = ec2metadata.New(session.Must(session.NewSession()))
@@ -115,18 +117,6 @@ func EKSClusterName(instance *ec2.Instance) (string, error) {
 	return "", errors.New("kubernetes.io/cluster/<name> tag not set on instance")
 }
 
-func EKSCluster(name string) (*eks.Cluster, error) {
-	eksClient := eks.New(sess)
-	input := &eks.DescribeClusterInput{
-		Name: aws.String(name),
-	}
-	result, err := eksClient.DescribeCluster(input)
-	if err != nil {
-		return nil, err
-	}
-	return result.Cluster, nil
-}
-
 func writeConfig(path string, templ *template.Template, data interface{}) error {
 	directory := filepath.Dir(path)
 	err := os.MkdirAll(directory, 0710)
@@ -194,7 +184,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cluster, err := EKSCluster(name)
+	cluster, err := eks.Cluster(eksSvc.New(sess), name)
 	if err != nil {
 		log.Fatal(err)
 	}
