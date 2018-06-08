@@ -1,6 +1,7 @@
 package eks_test
 
 import (
+	"errors"
 	"github.com/errm/ekstrap/pkg/eks"
 	"testing"
 
@@ -28,113 +29,79 @@ func (m *mockEKS) DescribeCluster(input *svc.DescribeClusterInput) (*svc.Describ
 	return output, err
 }
 
-func TestClusterStatusActive(t *testing.T) {
-	status := svc.ClusterStatusActive
-	healthyCluster := &svc.Cluster{Status: &status}
-	svc := &mockEKS{
-		clusters: []*svc.Cluster{healthyCluster},
-		errs:     []error{nil},
-	}
-	cluster, err := eks.Cluster(svc, "cluster-name")
-	if err != nil {
-		t.Error("there should be no error")
-	}
-	if cluster != healthyCluster {
-		t.Error("the cluster was not returned correctly")
-	}
-}
+var activeStatus = svc.ClusterStatusActive
+var activeCluster = &svc.Cluster{Status: &activeStatus}
+var deletingStatus = svc.ClusterStatusDeleting
+var deletingCluster = &svc.Cluster{Status: &deletingStatus}
+var failedStatus = svc.ClusterStatusFailed
+var failedCluster = &svc.Cluster{Status: &failedStatus}
+var creatingStatus = svc.ClusterStatusCreating
+var creatingCluster = &svc.Cluster{Status: &creatingStatus}
+var notFoundError = awserr.New(svc.ErrCodeResourceNotFoundException, "Not found", nil)
+var serviceError = awserr.New(svc.ErrCodeServiceUnavailableException, "AWS is broken", nil)
 
-func TestClusterStatusDeleting(t *testing.T) {
-	status := svc.ClusterStatusDeleting
-	deletingCluster := &svc.Cluster{Status: &status}
-	svc := &mockEKS{
-		clusters: []*svc.Cluster{deletingCluster},
-		errs:     []error{nil},
-	}
-	cluster, err := eks.Cluster(svc, "cluster-name")
-	if cluster != nil {
-		t.Error("there should be no cluster returned")
-	}
-	expected := "Cannot use the EKS cluster: cluster-name, becuase it is DELETING"
-	if err.Error() != expected {
-		t.Errorf("Expected error test to be: %s, but was %s", expected, err.Error())
-	}
-}
-
-func TestClusterStatusFailed(t *testing.T) {
-	status := svc.ClusterStatusFailed
-	failedCluster := &svc.Cluster{Status: &status}
-	svc := &mockEKS{
-		clusters: []*svc.Cluster{failedCluster},
-		errs:     []error{nil},
-	}
-	cluster, err := eks.Cluster(svc, "cluster-name")
-	if cluster != nil {
-		t.Error("there should be no cluster returned")
-	}
-	expected := "Cannot use the EKS cluster: cluster-name, becuase it is FAILED"
-	if err.Error() != expected {
-		t.Errorf("Expected error test to be: %s, but was %s", expected, err.Error())
-	}
-}
-
-func TestClusterStatusCreating(t *testing.T) {
-	activeStatus := svc.ClusterStatusActive
-	activeCluster := &svc.Cluster{Status: &activeStatus}
-
-	creatingStatus := svc.ClusterStatusCreating
-	creatingCluster := &svc.Cluster{Status: &creatingStatus}
-
-	svc := &mockEKS{
-		clusters: []*svc.Cluster{creatingCluster, activeCluster},
-		errs:     []error{nil, nil},
+func TestCluster(t *testing.T) {
+	tests := []struct {
+		clusters      []*svc.Cluster
+		errors        []error
+		expected      *svc.Cluster
+		expectedError error
+	}{
+		{
+			clusters:      []*svc.Cluster{activeCluster},
+			errors:        []error{nil},
+			expected:      activeCluster,
+			expectedError: nil,
+		},
+		{
+			clusters:      []*svc.Cluster{deletingCluster},
+			errors:        []error{nil},
+			expected:      nil,
+			expectedError: errors.New("Cannot use the EKS cluster: cluster-name, becuase it is DELETING"),
+		},
+		{
+			clusters:      []*svc.Cluster{failedCluster},
+			errors:        []error{nil},
+			expected:      nil,
+			expectedError: errors.New("Cannot use the EKS cluster: cluster-name, becuase it is FAILED"),
+		},
+		{
+			clusters:      []*svc.Cluster{creatingCluster, activeCluster},
+			errors:        []error{nil, nil},
+			expected:      activeCluster,
+			expectedError: nil,
+		},
+		{
+			clusters:      []*svc.Cluster{nil, activeCluster},
+			errors:        []error{notFoundError, nil},
+			expected:      activeCluster,
+			expectedError: nil,
+		},
+		{
+			clusters:      []*svc.Cluster{nil, activeCluster},
+			errors:        []error{serviceError, nil},
+			expected:      activeCluster,
+			expectedError: nil,
+		},
 	}
 
-	cluster, err := eks.Cluster(svc, "cluster-name")
-	if cluster != activeCluster {
-		t.Error("it didn't return the correct cluster")
-	}
-	if err != nil {
-		t.Error("there should be no error")
-	}
-}
-
-func TestClusterNotFound(t *testing.T) {
-	activeStatus := svc.ClusterStatusActive
-	activeCluster := &svc.Cluster{Status: &activeStatus}
-
-	notFoundError := awserr.New(svc.ErrCodeResourceNotFoundException, "Not found", nil)
-
-	svc := &mockEKS{
-		clusters: []*svc.Cluster{nil, activeCluster},
-		errs:     []error{notFoundError, nil},
-	}
-
-	cluster, err := eks.Cluster(svc, "cluster-name")
-	if cluster != activeCluster {
-		t.Error("it didn't return the correct cluster")
-	}
-	if err != nil {
-		t.Error("there should be no error")
-	}
-}
-
-func TestClusterServiceError(t *testing.T) {
-	activeStatus := svc.ClusterStatusActive
-	activeCluster := &svc.Cluster{Status: &activeStatus}
-
-	serviceError := awserr.New(svc.ErrCodeServiceUnavailableException, "AWS is broken", nil)
-
-	svc := &mockEKS{
-		clusters: []*svc.Cluster{nil, activeCluster},
-		errs:     []error{serviceError, nil},
-	}
-
-	cluster, err := eks.Cluster(svc, "cluster-name")
-	if cluster != activeCluster {
-		t.Error("it didn't return the correct cluster")
-	}
-	if err != nil {
-		t.Error("there should be no error")
+	for _, test := range tests {
+		svc := &mockEKS{
+			clusters: test.clusters,
+			errs:     test.errors,
+		}
+		cluster, err := eks.Cluster(svc, "cluster-name")
+		if cluster != test.expected {
+			t.Errorf("expected cluster: %v, got %v", test.expected, cluster)
+		}
+		if test.expectedError == nil {
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		} else {
+			if err.Error() != test.expectedError.Error() {
+				t.Errorf("expected error message: %s, got %s", test.expectedError.Error(), err.Error())
+			}
+		}
 	}
 }
