@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"syscall"
 	"text/template"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -133,6 +134,7 @@ func writeConfig(path string, templ *template.Template, data interface{}) error 
 		return err
 	}
 	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0640)
+	defer file.Close()
 	if err != nil {
 		return err
 	}
@@ -146,6 +148,7 @@ func writeCertificate(path string, data string) error {
 		return err
 	}
 	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0640)
+	defer file.Close()
 	if err != nil {
 		return err
 	}
@@ -163,8 +166,19 @@ func setHostname(hostname string) error {
 	if currHostname, err := os.Hostname(); err != nil || currHostname == hostname {
 		return err
 	}
-	log.Printf("setting hostname to %s", hostname)
-	return runCommand("hostnamectl", "set-hostname", hostname)
+
+	h := []byte(hostname)
+	log.Printf("setting hostname to %s", h)
+	file, err := os.Create("/etc/hostname")
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+	_, err = file.Write(h)
+	if err != nil {
+		return err
+	}
+	return syscall.Sethostname(h)
 }
 
 func main() {
