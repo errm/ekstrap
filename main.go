@@ -3,11 +3,6 @@ package main
 import (
 	"encoding/base64"
 	"errors"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/eks"
 	"io"
 	"log"
 	"os"
@@ -16,6 +11,12 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/eks"
 )
 
 var metadata = ec2metadata.New(session.Must(session.NewSession()))
@@ -158,9 +159,20 @@ func runCommand(name string, args ...string) error {
 	return cmd.Run()
 }
 
+func setHostname(hostname string) error {
+	if currHostname, err := os.Hostname(); err != nil || currHostname == hostname {
+		return err
+	}
+	log.Printf("setting hostname to %s", hostname)
+	return runCommand("hostnamectl", "set-hostname", hostname)
+}
+
 func main() {
 	instance, err := Instance()
 	if err != nil {
+		log.Fatal(err)
+	}
+	if err = setHostname(*instance.PrivateDnsName); err != nil {
 		log.Fatal(err)
 	}
 	ip := *instance.PrivateIpAddress
