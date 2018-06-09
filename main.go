@@ -1,19 +1,19 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
-	"io"
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
 	"text/template"
 
 	"github.com/errm/ekstrap/pkg/eks"
+	"github.com/errm/ekstrap/pkg/file"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
@@ -118,33 +118,17 @@ func EKSClusterName(instance *ec2.Instance) (string, error) {
 }
 
 func writeConfig(path string, templ *template.Template, data interface{}) error {
-	directory := filepath.Dir(path)
-	err := os.MkdirAll(directory, 0710)
+	var buff bytes.Buffer
+	err := templ.Execute(&buff, data)
 	if err != nil {
 		return err
 	}
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0640)
-	defer file.Close()
-	if err != nil {
-		return err
-	}
-	return templ.Execute(file, data)
+	return file.Copy(&buff, path, 0640)
 }
 
 func writeCertificate(path string, data string) error {
-	directory := filepath.Dir(path)
-	err := os.MkdirAll(directory, 0710)
-	if err != nil {
-		return err
-	}
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0640)
-	defer file.Close()
-	if err != nil {
-		return err
-	}
 	decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(data))
-	_, err = io.Copy(file, decoder)
-	return err
+	return file.Copy(decoder, path, 0640)
 }
 
 func runCommand(name string, args ...string) error {
@@ -156,16 +140,9 @@ func setHostname(hostname string) error {
 	if currHostname, err := os.Hostname(); err != nil || currHostname == hostname {
 		return err
 	}
-
 	h := []byte(hostname)
 	log.Printf("setting hostname to %s", h)
-	file, err := os.Create("/etc/hostname")
-	defer file.Close()
-	if err != nil {
-		return err
-	}
-	_, err = file.Write(h)
-	if err != nil {
+	if err := file.Copy(bytes.NewReader(h), "/etc/hostname", 0644); err != nil {
 		return err
 	}
 	return syscall.Sethostname(h)
