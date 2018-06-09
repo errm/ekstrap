@@ -9,17 +9,13 @@ type Backoff struct {
 	Seq []int
 }
 
-func (b Backoff) Pretty(n int) int {
-	if len(b.Seq) == 0 {
-		return 0
-	} else if n >= len(b.Seq) {
-		return b.Seq[len(b.Seq)-1]
-	}
-	return b.Seq[n-1]
-}
-
 func (b Backoff) Duration(n int) time.Duration {
-	return jittered(b.Pretty(n))
+	if len(b.Seq) == 0 {
+		return jittered(0)
+	} else if n >= len(b.Seq) {
+		return jittered(b.Seq[len(b.Seq)-1])
+	}
+	return jittered(b.Seq[n-1])
 }
 
 func jittered(t int) time.Duration {

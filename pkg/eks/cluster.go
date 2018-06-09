@@ -26,13 +26,15 @@ func Cluster(svc eksiface.EKSAPI, name string) (*eks.Cluster, error) {
 			if aerr, ok := err.(awserr.Error); ok {
 				switch aerr.Code() {
 				case eks.ErrCodeResourceNotFoundException:
-					log.Printf("The EKS cluster: %s does not (yet) exist, will try again in about %d seconds...", name, b.Pretty(tries))
-					time.Sleep(b.Duration(tries))
+					sleepFor := b.Duration(tries)
+					log.Printf("The EKS cluster: %s does not (yet) exist, will try again in %s", name, sleepFor)
+					time.Sleep(sleepFor)
 					tries++
 					continue
 				case eks.ErrCodeServiceUnavailableException:
-					log.Printf("The EKS service is currentlty unavalible, will try again in about %d seconds...", b.Pretty(tries))
-					time.Sleep(b.Duration(tries))
+					sleepFor := b.Duration(tries)
+					log.Printf("The EKS service is currentlty unavalible, will try again in %s", sleepFor)
+					time.Sleep(sleepFor)
 					tries++
 					continue
 				}
@@ -44,8 +46,9 @@ func Cluster(svc eksiface.EKSAPI, name string) (*eks.Cluster, error) {
 		case eks.ClusterStatusActive:
 			return result.Cluster, nil
 		case eks.ClusterStatusCreating:
-			log.Printf("Waiting for the EKS cluster: %s to start, will try again in about %d seconds...", name, b.Pretty(tries))
-			time.Sleep(b.Duration(tries))
+			sleepFor := b.Duration(tries)
+			log.Printf("Waiting for the EKS cluster: %s to start, will try again in about %d seconds...", name, sleepFor)
+			time.Sleep(sleepFor)
 			tries++
 			continue
 		}
