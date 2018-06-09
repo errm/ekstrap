@@ -2,18 +2,17 @@ package main
 
 import (
 	"encoding/base64"
-	"errors"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"syscall"
 	"text/template"
 
 	"github.com/errm/ekstrap/pkg/eks"
+	"github.com/errm/ekstrap/pkg/node"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
@@ -22,8 +21,6 @@ import (
 	eksSvc "github.com/aws/aws-sdk-go/service/eks"
 )
 
-var metadata = ec2metadata.New(session.Must(session.NewSession()))
-
 var kubeconfig = template.Must(template.New("kubeconfig").Parse(
 	`apiVersion: v1
 kind: Config
@@ -31,7 +28,7 @@ clusters:
 - name: {{.Cluster.Name}}
   cluster:
     server: {{.Cluster.Endpoint}}
-    certificate-authority-data: {{.Cluster.CertificateAuthority}}
+    certificate-authority-data: {{.Cluster.CertificateAuthority.Data}}
 contexts:
 - name: kubelet
   context:
@@ -68,52 +65,6 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 `))
-
-var sess = session.Must(session.NewSession(&aws.Config{
-	Region: aws.String(Region()),
-}))
-
-var client = ec2.New(sess)
-var id = InstanceId()
-
-type templateContext struct {
-	Cluster *eksSvc.Cluster
-	Node    *ec2.Instance
-}
-
-func Region() string {
-	result, e := metadata.GetMetadata("placement/availability-zone")
-	if e != nil {
-		log.Fatal(e)
-	}
-	return result[:len(result)-1]
-}
-
-func InstanceId() string {
-	result, e := metadata.GetMetadata("instance-id")
-	if e != nil {
-		log.Fatal(e)
-	}
-	return result
-}
-
-func Instance() (*ec2.Instance, error) {
-	output, err := client.DescribeInstances(&ec2.DescribeInstancesInput{InstanceIds: []*string{&id}})
-	if err != nil {
-		return nil, err
-	}
-	return output.Reservations[0].Instances[0], nil
-}
-
-func EKSClusterName(instance *ec2.Instance) (string, error) {
-	re := regexp.MustCompile(`kubernetes.io\/cluster\/([\w-]+)`)
-	for _, t := range instance.Tags {
-		if matches := re.FindStringSubmatch(*t.Key); len(matches) == 2 {
-			return matches[1], nil
-		}
-	}
-	return "", errors.New("kubernetes.io/cluster/<name> tag not set on instance")
-}
 
 func writeConfig(path string, templ *template.Template, data interface{}) error {
 	directory := filepath.Dir(path)
@@ -170,32 +121,39 @@ func setHostname(hostname string) error {
 }
 
 func main() {
-	instance, err := Instance()
+	metadata := ec2metadata.New(session.Must(session.NewSession()))
+	region, err := metadata.Region()
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err = setHostname(*instance.PrivateDnsName); err != nil {
-		log.Fatal(err)
-	}
-	name, err := EKSClusterName(instance)
+	sess := session.Must(session.NewSession(&aws.Config{Region: &region}))
+	n, err := node.New(ec2.New(sess), metadata)
 	if err != nil {
 		log.Fatal(err)
 	}
-	cluster, err := eks.Cluster(eksSvc.New(sess), name)
+	if err = setHostname(*n.PrivateDnsName); err != nil {
+		log.Fatal(err)
+	}
+	cluster, err := eks.Cluster(eksSvc.New(sess), n.ClusterName())
 	if err != nil {
 		log.Fatal(err)
 	}
-	info := templateContext{
+
+	info := struct {
+		Cluster *eksSvc.Cluster
+		Node    *node.Node
+	}{
 		Cluster: cluster,
-		Node:    instance,
+		Node:    n,
 	}
+
 	if err = writeConfig("/var/lib/kubelet/kubeconfig", kubeconfig, info); err != nil {
 		log.Fatal(err)
 	}
 	if err = writeConfig("/lib/systemd/system/kubelet.service", kubeletService, info); err != nil {
 		log.Fatal(err)
 	}
-	if err = writeCertificate("/etc/kubernetes/pki/ca.crt", info.CertificateData); err != nil {
+	if err = writeCertificate("/etc/kubernetes/pki/ca.crt", *cluster.CertificateAuthority.Data); err != nil {
 		log.Fatal(err)
 	}
 	if err = runCommand("systemctl", "daemon-reload"); err != nil {

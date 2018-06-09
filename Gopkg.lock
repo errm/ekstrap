@@ -34,6 +34,7 @@
     "private/protocol/restjson",
     "private/protocol/xml/xmlutil",
     "service/ec2",
+    "service/ec2/ec2iface",
     "service/eks",
     "service/eks/eksiface",
     "service/sts"
@@ -55,6 +56,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "46851db00fd7af4fe5ca3e84ca495815e34320762862d33693e2eae2e19e9c1d"
+  inputs-digest = "a4de4f2b1311eb9431cc67348b7a10defba6f94fd060c7a510b559a51a0d7120"
   solver-name = "gps-cdcl"
   solver-version = 1

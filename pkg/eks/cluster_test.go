@@ -113,7 +113,7 @@ type mockEKS struct {
 
 func (m *mockEKS) DescribeCluster(input *eks.DescribeClusterInput) (*eks.DescribeClusterOutput, error) {
 	var cluster *eks.Cluster
-	// Pop last cluster from clusters
+	// Pop first cluster from clusters
 	cluster, m.clusters = m.clusters[0], m.clusters[1:]
 	output := &eks.DescribeClusterOutput{
 		Cluster: cluster,
