@@ -13,6 +13,8 @@ import (
 // Copy atomicly copies data to a file at the given path with the given permissions
 // If a directory does not exit it is created
 // If the file allready exists and diff returns 0 then this command is a noopp
+//
+// Requires the diff utility to be present on the system, since it is specified in POSIX we assume it is
 func Copy(data io.Reader, path string, perm os.FileMode) error {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0710); err != nil {
