@@ -27,6 +27,7 @@ func TestCluster(t *testing.T) {
 	creatingCluster := &eks.Cluster{Status: &creatingStatus}
 	notFoundError := awserr.New(eks.ErrCodeResourceNotFoundException, "Not found", nil)
 	serviceError := awserr.New(eks.ErrCodeServiceUnavailableException, "AWS is broken", nil)
+	clientError := awserr.New(eks.ErrCodeClientException, "Your credentials are no good", nil)
 	tests := []struct {
 		clusters      []*eks.Cluster
 		errors        []error
@@ -74,6 +75,12 @@ func TestCluster(t *testing.T) {
 			errors:        []error{notFoundError, serviceError, notFoundError, nil, nil},
 			expected:      activeCluster,
 			expectedError: nil,
+		},
+		{
+			clusters:      []*eks.Cluster{nil},
+			errors:        []error{clientError},
+			expected:      nil,
+			expectedError: clientError,
 		},
 	}
 
