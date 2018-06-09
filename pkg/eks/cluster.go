@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 )
 
-var b = backoff.Backoff{[]int{1, 3, 4, 8, 16, 32, 64}}
+var b = backoff.Backoff{[]int{1, 2, 4, 8, 16, 32, 64}}
 
 // Cluster returns the named EKS cluster.
 //
