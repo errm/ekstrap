@@ -5,10 +5,14 @@ import (
 	"time"
 )
 
+// Backoff represents a back-off stratergy
+// Seq represents a seqence of durations in seconds to backoff for
 type Backoff struct {
 	Seq []int
 }
 
+// Duration returns a duration to backoff for given the step number n.
+// The duration is jittered by +- 500ms
 func (b Backoff) Duration(n int) time.Duration {
 	if len(b.Seq) == 0 {
 		return jittered(0)

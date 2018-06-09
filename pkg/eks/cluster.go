@@ -15,6 +15,11 @@ import (
 
 var b = backoff.Backoff{[]int{1, 3, 4, 8, 16, 32, 64}}
 
+// Cluster returns the named EKS cluster.
+//
+// If the cluster doesn't exist, or hasn't yet started it will block until it is ready.
+// If the EKS service is unavalible it will backoff and retry
+// If the cluster is deleting failed, or there are any other errors an error will be returned
 func Cluster(svc eksiface.EKSAPI, name string) (*eks.Cluster, error) {
 	input := &eks.DescribeClusterInput{
 		Name: aws.String(name),
