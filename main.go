@@ -28,14 +28,14 @@ var kubeconfig = template.Must(template.New("kubeconfig").Parse(
 	`apiVersion: v1
 kind: Config
 clusters:
-- name: {{.ClusterName}}
+- name: {{.Cluster.Name}}
   cluster:
-    server: {{.Endpoint}}
-    certificate-authority-data: {{.CertificateData}}
+    server: {{.Cluster.Endpoint}}
+    certificate-authority-data: {{.Cluster.CertificateAuthority}}
 contexts:
 - name: kubelet
   context:
-    cluster: {{.ClusterName}}
+    cluster: {{.Cluster.Name}}
     user: kubelet
 current-context: kubelet
 users:
@@ -47,7 +47,7 @@ users:
       args:
         - token
         - "-i"
-        - "{{.ClusterName}}"
+        - "{{.Cluster.Name}}"
 `))
 
 var kubeletService = template.Must(template.New("kubelet-service").Parse(
@@ -58,7 +58,7 @@ After=docker.service
 Requires=docker.service
 
 [Service]
-ExecStart=/usr/bin/kubelet   --address=0.0.0.0   --allow-privileged=true   --cloud-provider=aws   --cluster-dns=10.100.0.10   --cluster-domain=cluster.local   --cni-bin-dir=/opt/cni/bin   --cni-conf-dir=/etc/cni/net.d   --container-runtime=docker   --node-ip={{.NodeIP}}   --network-plugin=cni   --cgroup-driver=cgroupfs   --register-node=true   --kubeconfig=/var/lib/kubelet/kubeconfig   --feature-gates=RotateKubeletServerCertificate=true   --anonymous-auth=false   --client-ca-file=/etc/kubernetes/pki/ca.crt
+ExecStart=/usr/bin/kubelet   --address=0.0.0.0   --allow-privileged=true   --cloud-provider=aws   --cluster-dns=10.100.0.10   --cluster-domain=cluster.local   --cni-bin-dir=/opt/cni/bin   --cni-conf-dir=/etc/cni/net.d   --container-runtime=docker   --node-ip={{.Node.PrivateIpAddress}}   --network-plugin=cni   --cgroup-driver=cgroupfs   --register-node=true   --kubeconfig=/var/lib/kubelet/kubeconfig   --feature-gates=RotateKubeletServerCertificate=true   --anonymous-auth=false   --client-ca-file=/etc/kubernetes/pki/ca.crt
 
 Restart=on-failure
 Restart=always
@@ -76,11 +76,9 @@ var sess = session.Must(session.NewSession(&aws.Config{
 var client = ec2.New(sess)
 var id = InstanceId()
 
-type node struct {
-	ClusterName     string
-	Endpoint        string
-	CertificateData string
-	NodeIP          string
+type templateContext struct {
+	Cluster *eksSvc.Cluster
+	Node    *ec2.Instance
 }
 
 func Region() string {
@@ -156,7 +154,6 @@ func main() {
 	if err = setHostname(*instance.PrivateDnsName); err != nil {
 		log.Fatal(err)
 	}
-	ip := *instance.PrivateIpAddress
 	name, err := EKSClusterName(instance)
 	if err != nil {
 		log.Fatal(err)
@@ -165,11 +162,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	info := node{
-		ClusterName:     name,
-		Endpoint:        *cluster.Endpoint,
-		CertificateData: *cluster.CertificateAuthority.Data,
-		NodeIP:          ip,
+	info := templateContext{
+		Cluster: cluster,
+		Node:    instance,
 	}
 	if err = writeConfig("/var/lib/kubelet/kubeconfig", kubeconfig, info); err != nil {
 		log.Fatal(err)
