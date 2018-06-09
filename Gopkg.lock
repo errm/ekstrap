@@ -35,6 +35,7 @@
     "private/protocol/xml/xmlutil",
     "service/ec2",
     "service/eks",
+    "service/eks/eksiface",
     "service/sts"
   ]
   revision = "60a85d13d02126d8d15ea3f21fd57ac3a2774f37"
@@ -54,6 +55,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ce088875787e341c4ab907004dc0acb6d140bcf949bd887bc531c4a3ffad009b"
+  inputs-digest = "46851db00fd7af4fe5ca3e84ca495815e34320762862d33693e2eae2e19e9c1d"
   solver-name = "gps-cdcl"
   solver-version = 1
