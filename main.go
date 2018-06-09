@@ -123,12 +123,12 @@ func writeConfig(path string, templ *template.Template, data interface{}) error 
 	if err != nil {
 		return err
 	}
-	return file.Copy(&buff, path, 0640)
+	return file.Sync(&buff, path, 0640)
 }
 
 func writeCertificate(path string, data string) error {
 	decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(data))
-	return file.Copy(decoder, path, 0640)
+	return file.Sync(decoder, path, 0640)
 }
 
 func runCommand(name string, args ...string) error {
@@ -142,7 +142,7 @@ func setHostname(hostname string) error {
 	}
 	h := []byte(hostname)
 	log.Printf("setting hostname to %s", h)
-	if err := file.Copy(bytes.NewReader(h), "/etc/hostname", 0644); err != nil {
+	if err := file.Sync(bytes.NewReader(h), "/etc/hostname", 0644); err != nil {
 		return err
 	}
 	return syscall.Sethostname(h)

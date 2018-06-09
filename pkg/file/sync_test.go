@@ -18,7 +18,7 @@ func TestWritingToNonExistantFile(t *testing.T) {
 
 	filename := filepath.Join(dir, "filename")
 
-	err = file.Copy(strings.NewReader("Hello World"), filename, 0640)
+	err = file.Sync(strings.NewReader("Hello World"), filename, 0640)
 	check(t, err)
 
 	contents, err := ioutil.ReadFile(filename)
@@ -40,7 +40,7 @@ func TestPermissions(t *testing.T) {
 
 	for _, perm := range perms {
 		filename := filepath.Join(dir, fmt.Sprintf("filename-%s", perm))
-		err = file.Copy(strings.NewReader("string"), filename, perm)
+		err = file.Sync(strings.NewReader("string"), filename, perm)
 		check(t, err)
 		info, err := os.Stat(filename)
 		check(t, err)
@@ -61,7 +61,7 @@ func TestOverwrite(t *testing.T) {
 	err = ioutil.WriteFile(filename, []byte("Old contents"), 0644)
 	check(t, err)
 
-	err = file.Copy(strings.NewReader("New contents"), filename, 0644)
+	err = file.Sync(strings.NewReader("New contents"), filename, 0644)
 	check(t, err)
 
 	contents, err := ioutil.ReadFile(filename)
@@ -85,7 +85,7 @@ func TestNoOppOverwrite(t *testing.T) {
 	mtime := info.ModTime()
 	time.Sleep(10 * time.Millisecond)
 
-	err = file.Copy(strings.NewReader("contents"), filename, 0644)
+	err = file.Sync(strings.NewReader("contents"), filename, 0644)
 	check(t, err)
 
 	info, err = os.Stat(filename)
