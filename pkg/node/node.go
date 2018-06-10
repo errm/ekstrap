@@ -27,7 +27,7 @@ var b = backoff.Backoff{[]int{1, 1, 2}}
 // If the EC2 instance doesn't have the expected kubernetes tag, it will backoff and retry.
 // If it isn't able to query EC2 or there are any other errors, an error will be returned.
 func New(e ec2iface.EC2API, m metadataClient) (*Node, error) {
-	id, err := instanceId(m)
+	id, err := instanceID(m)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (n *Node) ClusterName() string {
 	return ""
 }
 
-func instanceId(m metadataClient) (*string, error) {
+func instanceID(m metadataClient) (*string, error) {
 	result, err := m.GetMetadata("instance-id")
 	if err != nil {
 		return nil, err
