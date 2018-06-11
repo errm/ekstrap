@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// Node represents and EC2 instance.
 type Node struct {
 	*ec2.Instance
 }
@@ -19,10 +20,14 @@ type metadataClient interface {
 	GetMetadata(string) (string, error)
 }
 
-var b = backoff.Backoff{[]int{1, 1, 2}}
+var b = backoff.Backoff{Seq: []int{1, 1, 2}}
 
+// New returns a Node instance.
+//
+// If the EC2 instance doesn't have the expected kubernetes tag, it will backoff and retry.
+// If it isn't able to query EC2 or there are any other errors, an error will be returned.
 func New(e ec2iface.EC2API, m metadataClient) (*Node, error) {
-	id, err := instanceId(m)
+	id, err := instanceID(m)
 	if err != nil {
 		return nil, err
 	}
@@ -44,6 +49,9 @@ func New(e ec2iface.EC2API, m metadataClient) (*Node, error) {
 	}
 }
 
+// ClusterName returns the cluster name.
+//
+// It reads the cluster name from a tag on the EC2 instance.
 func (n *Node) ClusterName() string {
 	re := regexp.MustCompile(`kubernetes.io\/cluster\/([\w-]+)`)
 	for _, t := range n.Tags {
@@ -54,7 +62,7 @@ func (n *Node) ClusterName() string {
 	return ""
 }
 
-func instanceId(m metadataClient) (*string, error) {
+func instanceID(m metadataClient) (*string, error) {
 	result, err := m.GetMetadata("instance-id")
 	if err != nil {
 		return nil, err
