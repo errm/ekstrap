@@ -52,7 +52,7 @@ func Cluster(svc eksiface.EKSAPI, name string) (*eks.Cluster, error) {
 			return result.Cluster, nil
 		case eks.ClusterStatusCreating:
 			sleepFor := b.Duration(tries)
-			log.Printf("Waiting for the EKS cluster: %s to start, will try again in about %d seconds...", name, sleepFor)
+			log.Printf("Waiting for the EKS cluster: %s to start, will try again in %s", name, sleepFor)
 			time.Sleep(sleepFor)
 			tries++
 			continue

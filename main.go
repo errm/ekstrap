@@ -7,7 +7,6 @@ import (
 	"github.com/errm/ekstrap/pkg/file"
 	"github.com/errm/ekstrap/pkg/node"
 	"github.com/errm/ekstrap/pkg/system"
-	"github.com/errm/ekstrap/pkg/systemd"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
@@ -40,8 +39,8 @@ func main() {
 
 	system := system.System{
 		Files:    &file.Atomic{},
-		Hostname: &systemd.System{},
-		Init:     &systemd.System{},
+		Hostname: &system.Systemd{},
+		Init:     &system.Systemd{},
 	}
 
 	if err := system.Configure(instance, cluster); err != nil {
