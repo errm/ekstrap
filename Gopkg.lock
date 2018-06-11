@@ -38,8 +38,14 @@
     "service/eks/eksiface",
     "service/sts"
   ]
-  revision = "60a85d13d02126d8d15ea3f21fd57ac3a2774f37"
-  version = "v1.14.0"
+  revision = "c9af76f2478f81c6566d0f7f4d522254ec7c0b52"
+  version = "v1.14.3"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/dchest/safefile"
+  packages = ["."]
+  revision = "855e8d98f1852d48dde521e0522408d1fe7e836a"
 
 [[projects]]
   name = "github.com/go-ini/ini"
@@ -55,6 +61,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "46851db00fd7af4fe5ca3e84ca495815e34320762862d33693e2eae2e19e9c1d"
+  inputs-digest = "a5c07c1880393145bde28c423e311474b5a1588ff1fbb121c98738ab27977038"
   solver-name = "gps-cdcl"
   solver-version = 1
