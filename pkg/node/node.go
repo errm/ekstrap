@@ -20,7 +20,7 @@ type metadataClient interface {
 	GetMetadata(string) (string, error)
 }
 
-var b = backoff.Backoff{[]int{1, 1, 2}}
+var b = backoff.Backoff{Seq: []int{1, 1, 2}}
 
 // New returns a Node instance.
 //
