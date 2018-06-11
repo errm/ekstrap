@@ -17,7 +17,7 @@ type Atomic struct{}
 // If the parent directory does not exit it is created
 // If the file allready exists and diff returns 0 then this command is a noopp
 // Requires the diff utility to be present on the system, since it is specified in POSIX we assume it is
-func (a AtomicWriter) Sync(data io.Reader, path string, perm os.FileMode) error {
+func (a Atomic) Sync(data io.Reader, path string, perm os.FileMode) error {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0710); err != nil {
 		return err
