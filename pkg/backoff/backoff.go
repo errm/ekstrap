@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Backoff represents a back-off stratergy
+// Backoff represents a back-off strategy
 // Seq represents a seqence of durations in seconds to backoff for
 type Backoff struct {
 	Seq []int
