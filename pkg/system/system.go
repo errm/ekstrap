@@ -20,7 +20,7 @@ type Init interface {
 }
 
 type Hostname interface {
-	Set(string) error
+	SetHostname(string) error
 }
 
 type System struct {
@@ -30,7 +30,7 @@ type System struct {
 }
 
 func (s System) Configure(n *node.Node, cluster *eks.Cluster) error {
-	if err := s.Hostname.Set(*n.PrivateDnsName); err != nil {
+	if err := s.Hostname.SetHostname(*n.PrivateDnsName); err != nil {
 		return err
 	}
 
