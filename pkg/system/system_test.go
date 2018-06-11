@@ -153,7 +153,7 @@ type FakeHostname struct {
 	hostname string
 }
 
-func (h *FakeHostname) Set(name string) error {
+func (h *FakeHostname) SetHostname(name string) error {
 	h.hostname = name
 	return nil
 }

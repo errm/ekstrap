@@ -2,7 +2,7 @@ package file_test
 
 import (
 	"fmt"
-	"github.com/errm/ekstrap/pkg/file"
+	pkg "github.com/errm/ekstrap/pkg/file"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 )
+
+var file = &pkg.Atomic{}
 
 func TestWritingToNonExistantFile(t *testing.T) {
 	dir, err := ioutil.TempDir("", "")
