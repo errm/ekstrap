@@ -23,7 +23,7 @@ func TestConfigure(t *testing.T) {
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
 		"dGhpc2lzdGhlY2VydGRhdGE=",
 	)
-	system := System{Files: fs, Hostname: hn, Init: init}
+	system := System{Filesystem: fs, Hostname: hn, Init: init}
 	err := system.Configure(i, c)
 
 	if err != nil {
@@ -56,8 +56,7 @@ users:
       args:
         - token
         - "-i"
-        - "aws-om-cluster"
-`
+        - "aws-om-cluster"`
 	fs.Check(t, "/var/lib/kubelet/kubeconfig", expected, 0640)
 
 	expected = `[Unit]
@@ -75,8 +74,7 @@ StartLimitInterval=0
 RestartSec=10
 
 [Install]
-WantedBy=multi-user.target
-`
+WantedBy=multi-user.target`
 	fs.Check(t, "/lib/systemd/system/kubelet.service", expected, 0640)
 
 	fs.Check(t, "/etc/kubernetes/pki/ca.crt", "thisisthecertdata", 0640)

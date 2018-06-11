@@ -38,9 +38,9 @@ func main() {
 	}
 
 	system := system.System{
-		Files:    &file.Atomic{},
-		Hostname: &system.Systemd{},
-		Init:     &system.Systemd{},
+		Filesystem: &file.Atomic{},
+		Hostname:   &system.Systemd{},
+		Init:       &system.Systemd{},
 	}
 
 	if err := system.Configure(instance, cluster); err != nil {
