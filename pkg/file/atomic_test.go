@@ -1,7 +1,6 @@
 package file_test
 
 import (
-	"fmt"
 	pkg "github.com/errm/ekstrap/pkg/file"
 	"io/ioutil"
 	"os"
@@ -20,37 +19,25 @@ func TestWritingToNonExistantFile(t *testing.T) {
 
 	filename := filepath.Join(dir, "filename")
 
-	err = file.Sync(strings.NewReader("Hello World"), filename, 0640)
+	ok, err := file.Sync(strings.NewReader("Hello World"), filename)
+	if ok != true {
+		t.Error("expected ok to be true")
+	}
 	check(t, err)
 
 	contents, err := ioutil.ReadFile(filename)
 	check(t, err)
+
 	if string(contents) != "Hello World" {
 		t.Errorf("Unexpected file contents: %s", contents)
 	}
-}
 
-func TestPermissions(t *testing.T) {
-	dir, err := ioutil.TempDir("", "")
+	perm := os.FileMode(0640)
+	info, err := os.Stat(filename)
 	check(t, err)
-	defer os.RemoveAll(dir) //cleanup
-
-	perms := []os.FileMode{
-		0640,
-		0644,
+	if info.Mode() != perm {
+		t.Errorf("Expecting mode: %s, got %s", perm, info.Mode())
 	}
-
-	for _, perm := range perms {
-		filename := filepath.Join(dir, fmt.Sprintf("filename-%s", perm))
-		err = file.Sync(strings.NewReader("string"), filename, perm)
-		check(t, err)
-		info, err := os.Stat(filename)
-		check(t, err)
-		if info.Mode() != perm {
-			t.Errorf("Expecting mode: %s, got %s", perm, info.Mode())
-		}
-	}
-
 }
 
 func TestOverwrite(t *testing.T) {
@@ -63,7 +50,10 @@ func TestOverwrite(t *testing.T) {
 	err = ioutil.WriteFile(filename, []byte("Old contents"), 0644)
 	check(t, err)
 
-	err = file.Sync(strings.NewReader("New contents"), filename, 0644)
+	ok, err := file.Sync(strings.NewReader("New contents"), filename)
+	if ok != true {
+		t.Error("expected ok to be true")
+	}
 	check(t, err)
 
 	contents, err := ioutil.ReadFile(filename)
@@ -87,7 +77,10 @@ func TestNoOppOverwrite(t *testing.T) {
 	mtime := info.ModTime()
 	time.Sleep(10 * time.Millisecond)
 
-	err = file.Sync(strings.NewReader("contents"), filename, 0644)
+	ok, err := file.Sync(strings.NewReader("contents"), filename)
+	if ok != false {
+		t.Error("expected ok to be false")
+	}
 	check(t, err)
 
 	info, err = os.Stat(filename)
