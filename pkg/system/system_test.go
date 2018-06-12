@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 	"log"
-	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -57,7 +56,7 @@ users:
         - token
         - "-i"
         - "aws-om-cluster"`
-	fs.Check(t, "/var/lib/kubelet/kubeconfig", expected, 0640)
+	fs.Check(t, "/var/lib/kubelet/kubeconfig", expected)
 
 	expected = `[Unit]
 Description=kubelet: The Kubernetes Node Agent
@@ -75,21 +74,48 @@ RestartSec=10
 
 [Install]
 WantedBy=multi-user.target`
-	fs.Check(t, "/lib/systemd/system/kubelet.service", expected, 0640)
+	fs.Check(t, "/lib/systemd/system/kubelet.service", expected)
 
-	fs.Check(t, "/etc/kubernetes/pki/ca.crt", "thisisthecertdata", 0640)
+	fs.Check(t, "/etc/kubernetes/pki/ca.crt", "thisisthecertdata")
 
 	if hn.hostname != "ip-10-6-28-199.us-west-2.compute.internal" {
 		t.Errorf("expected hostname to be ip-10-6-28-199.us-west-2.compute.internal, got %v", hn.hostname)
 	}
 
-	if len(init.restarted) != 1 {
-		t.Errorf("expected 1 restart got %v", len(init.restarted))
+	if len(init.servicesToRestart) != 1 {
+		t.Errorf("expected 1 restart got %v", len(init.servicesToRestart))
 	}
 
-	if init.restarted[0] != "kubelet" {
-		t.Errorf("expected the kubelet service to be restarted, but got %s", init.restarted[0])
+	if !init.servicesToRestart["kubelet"] {
+		t.Errorf("expected the kubelet service to be restarted, but got %v", init.servicesToRestart)
 	}
+}
+
+func TestIdempotency(t *testing.T) {
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal")
+	c := cluster(
+		"aws-om-cluster",
+		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
+		"dGhpc2lzdGhlY2VydGRhdGE=",
+	)
+	fs := prepareFS(i, c)
+	init := &FakeInit{}
+	system := System{Filesystem: fs, Hostname: &FakeHostname{}, Init: init}
+	err := system.Configure(i, c)
+
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
+
+	if len(init.servicesToRestart) != 0 {
+		t.Errorf("expected nothing to be restarted got: %v", init.servicesToRestart)
+	}
+}
+
+func prepareFS(instance *node.Node, cluster *eks.Cluster) *FakeFileSystem {
+	fs := &FakeFileSystem{}
+	System{Filesystem: fs, Hostname: &FakeHostname{}, Init: &FakeInit{}}.Configure(instance, cluster)
+	return fs
 }
 
 func instance(ip, dnsName string) *node.Node {
@@ -117,20 +143,33 @@ type FakeFileSystem struct {
 	files []FakeFile
 }
 
-func (f *FakeFileSystem) Sync(data io.Reader, path string, mode os.FileMode) error {
+func (f *FakeFileSystem) Sync(data io.Reader, path string) (bool, error) {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(data)
-	log.Printf("saving a file to %v", path)
-	f.files = append(f.files, FakeFile{Path: path, Contents: buf.Bytes(), Mode: mode})
-	return nil
+	if f.needsWrite(path, buf.Bytes()) {
+		log.Printf("saving a file to %v", path)
+		f.files = append(f.files, FakeFile{Path: path, Contents: buf.Bytes()})
+		return true, nil
+	}
+	return false, nil
 }
 
-func (f *FakeFileSystem) Check(t *testing.T, path string, contents string, mode os.FileMode) {
+func (f *FakeFileSystem) needsWrite(path string, contents []byte) bool {
 	for _, file := range f.files {
 		if file.Path == path {
-			if file.Mode != mode {
-				t.Errorf("unexpected permissions, expected %v, got %v", mode, file.Mode)
+			if string(file.Contents) != string(contents) {
+				return true
 			}
+			return false
+		}
+	}
+	return true
+
+}
+
+func (f *FakeFileSystem) Check(t *testing.T, path string, contents string) {
+	for _, file := range f.files {
+		if file.Path == path {
 			actual := string(file.Contents)
 			if contents != actual {
 				t.Errorf("File contents not as expected:\nactual:\n%v\n\nexpected:\n%v", actual, contents)
@@ -144,7 +183,6 @@ func (f *FakeFileSystem) Check(t *testing.T, path string, contents string, mode 
 type FakeFile struct {
 	Path     string
 	Contents []byte
-	Mode     os.FileMode
 }
 
 type FakeHostname struct {
@@ -157,10 +195,13 @@ func (h *FakeHostname) SetHostname(name string) error {
 }
 
 type FakeInit struct {
-	restarted []string
+	servicesToRestart map[string]bool
 }
 
-func (i *FakeInit) RestartService(name string) error {
-	i.restarted = append(i.restarted, name)
+func (i *FakeInit) NeedsRestart(name string) {
+	i.servicesToRestart = set(i.servicesToRestart, name)
+}
+
+func (i *FakeInit) RestartServices() error {
 	return nil
 }

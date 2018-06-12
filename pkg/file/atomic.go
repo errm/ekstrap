@@ -12,30 +12,30 @@ import (
 
 type Atomic struct{}
 
-// Sync atomicly writes data to a file at the given path with the given permissions
+// Sync atomicly writes data to a file at the given path
 //
 // If the parent directory does not exit it is created
 // If the file allready exists and diff returns 0 then this command is a noopp
 // Requires the diff utility to be present on the system, since it is specified in POSIX we assume it is
-func (a Atomic) Sync(data io.Reader, path string, perm os.FileMode) error {
+func (a Atomic) Sync(data io.Reader, path string) (bool, error) {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0710); err != nil {
-		return err
+		return false, err
 	}
-	f, err := safefile.Create(path, perm)
+	f, err := safefile.Create(path, 0640)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer f.Close()
 	if _, err = io.Copy(f, data); err != nil {
-		return err
+		return false, err
 	}
 	if output, needsWrite := diff(path, f.Name()); needsWrite {
 		log.Printf("File: %s will be updated:", path)
 		log.Printf("%s", output)
-		return f.Commit()
+		return true, f.Commit()
 	}
-	return nil
+	return false, nil
 }
 
 func diff(path, new string) ([]byte, bool) {

@@ -7,16 +7,16 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io"
-	"os"
 	"text/template"
 )
 
 type Filesystem interface {
-	Sync(io.Reader, string, os.FileMode) error
+	Sync(io.Reader, string) (bool, error)
 }
 
 type Init interface {
-	RestartService(string) error
+	RestartServices() error
+	NeedsRestart(string)
 }
 
 type Hostname interface {
@@ -48,14 +48,14 @@ func (s System) Configure(n *node.Node, cluster *eks.Cluster) error {
 	}
 
 	for _, config := range configs {
-		config.write(info)
+		if ok, err := config.write(info); err != nil {
+			return err
+		} else if ok {
+			s.Init.NeedsRestart("kubelet")
+		}
 	}
 
-	if err := s.Init.RestartService("kubelet"); err != nil {
-		return err
-	}
-
-	return nil
+	return s.Init.RestartServices()
 }
 
 func (s System) configs() ([]config, error) {
@@ -88,11 +88,11 @@ type config struct {
 	filesystem Filesystem
 }
 
-func (c config) write(data interface{}) error {
+func (c config) write(data interface{}) (bool, error) {
 	var buff bytes.Buffer
 	err := c.template.Execute(&buff, data)
 	if err != nil {
-		return err
+		return false, err
 	}
-	return c.filesystem.Sync(&buff, c.path, 0640)
+	return c.filesystem.Sync(&buff, c.path)
 }
