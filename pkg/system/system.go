@@ -48,7 +48,7 @@ func (s System) Configure(n *node.Node, cluster *eks.Cluster) error {
 	}
 
 	for _, config := range configs {
-		config.Write(info)
+		config.write(info)
 	}
 
 	if err := s.Init.RestartService("kubelet"); err != nil {
@@ -88,7 +88,7 @@ type config struct {
 	filesystem Filesystem
 }
 
-func (c config) Write(data interface{}) error {
+func (c config) write(data interface{}) error {
 	var buff bytes.Buffer
 	err := c.template.Execute(&buff, data)
 	if err != nil {
