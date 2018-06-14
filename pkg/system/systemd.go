@@ -21,13 +21,14 @@ type Systemd struct {
 
 // EnsureRunning makes sure that the service is running with the latest config.
 func (s *Systemd) EnsureRunning(name string) error {
+	fullName := name + ".service"
 	if err := s.Conn.Reload(); err != nil {
 		return err
 	}
-	if _, _, err := s.Conn.EnableUnitFiles([]string{name}, false, true); err != nil {
+	if _, _, err := s.Conn.EnableUnitFiles([]string{fullName}, false, true); err != nil {
 		return err
 	}
-	_, err := s.Conn.RestartUnit(name, "replace", nil)
+	_, err := s.Conn.RestartUnit(fullName, "replace", nil)
 	return err
 }
 
