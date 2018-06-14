@@ -14,7 +14,7 @@ type dbusConn interface {
 	RestartUnit(string, string, chan<- string) (int, error)
 }
 
-// Systemd allows you to interact systemd init system.
+// Systemd allows you to interact with the systemd init system.
 type Systemd struct {
 	Conn dbusConn
 }
