@@ -87,7 +87,7 @@ WantedBy=multi-user.target`
 		t.Errorf("expected 1 restart got %v", len(init.restarted))
 	}
 
-	if init.restarted[0] != "kubelet" {
+	if init.restarted[0] != "kubelet.service" {
 		t.Errorf("expected the kubelet service to be restarted, but got %s", init.restarted[0])
 	}
 }

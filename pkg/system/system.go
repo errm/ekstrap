@@ -51,7 +51,7 @@ func (s System) Configure(n *node.Node, cluster *eks.Cluster) error {
 		config.write(info)
 	}
 
-	return s.Init.EnsureRunning("kubelet")
+	return s.Init.EnsureRunning("kubelet.service")
 }
 
 func (s System) configs() ([]config, error) {

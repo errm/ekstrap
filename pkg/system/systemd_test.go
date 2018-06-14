@@ -47,10 +47,8 @@ func TestEnsureRunning(t *testing.T) {
 				t.Errorf("Unexpected error:  %v", err)
 			}
 
-			expected := tC.unit + ".service"
-
-			if d.restartedUnit != expected {
-				t.Errorf("Expected %v to be restarted, got %v", expected, d.restartedUnit)
+			if d.restartedUnit != tC.unit {
+				t.Errorf("Expected %v to be restarted, got %v", tC.unit, d.restartedUnit)
 			}
 		})
 	}
