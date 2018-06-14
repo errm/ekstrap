@@ -30,11 +30,11 @@ func TestEnsureRunning(t *testing.T) {
 	}{
 		{
 			desc: "Restart a unit",
-			unit: "something",
+			unit: "something.service",
 		},
 		{
 			desc: "Restart a different unit",
-			unit: "else",
+			unit: "else.service",
 		},
 	}
 	for _, tC := range testCases {
