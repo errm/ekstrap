@@ -16,7 +16,7 @@ type Filesystem interface {
 }
 
 type Init interface {
-	RestartService(string) error
+	EnsureRunning(string) error
 }
 
 type Hostname interface {
@@ -51,11 +51,7 @@ func (s System) Configure(n *node.Node, cluster *eks.Cluster) error {
 		config.write(info)
 	}
 
-	if err := s.Init.RestartService("kubelet"); err != nil {
-		return err
-	}
-
-	return nil
+	return s.Init.EnsureRunning("kubelet")
 }
 
 func (s System) configs() ([]config, error) {

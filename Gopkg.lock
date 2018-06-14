@@ -43,6 +43,12 @@
   version = "v1.14.3"
 
 [[projects]]
+  name = "github.com/coreos/go-systemd"
+  packages = ["dbus"]
+  revision = "39ca1b05acc7ad1220e09f133283b8859a8b71ab"
+  version = "v17"
+
+[[projects]]
   branch = "master"
   name = "github.com/dchest/safefile"
   packages = ["."]
@@ -55,6 +61,12 @@
   version = "v1.37.0"
 
 [[projects]]
+  name = "github.com/godbus/dbus"
+  packages = ["."]
+  revision = "a389bdde4dd695d414e47b755e95e72b7826432c"
+  version = "v4.1.0"
+
+[[projects]]
   name = "github.com/jmespath/go-jmespath"
   packages = ["."]
   revision = "0b12d6b5"
@@ -62,6 +74,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "15a1ab81cdebc764c60ef02b769ef35cd9c624df4c83936d9891fc6f735326e5"
+  inputs-digest = "482eea9cba7742f1011974dced7494cf39c1dee25f210b9428bcac925fb2718c"
   solver-name = "gps-cdcl"
   solver-version = 1

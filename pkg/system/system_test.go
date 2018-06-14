@@ -160,7 +160,7 @@ type FakeInit struct {
 	restarted []string
 }
 
-func (i *FakeInit) RestartService(name string) error {
+func (i *FakeInit) EnsureRunning(name string) error {
 	i.restarted = append(i.restarted, name)
 	return nil
 }
