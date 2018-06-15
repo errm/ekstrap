@@ -19,7 +19,7 @@ func TestEmptyBackoff(t *testing.T) {
 }
 
 func TestJitteredBackoff(t *testing.T) {
-	seq := backoff.Backoff{[]int{1, 2, 4, 8}}
+	seq := backoff.Backoff{Seq: []int{1, 2, 4, 8}}
 
 	if seq.Duration(1) == seq.Duration(1) {
 		t.Error("Jitter should ensure calls are not equal")

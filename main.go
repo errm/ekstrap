@@ -37,7 +37,7 @@ func main() {
 	systemdDbus, err := dbus.New()
 	check(err)
 
-	systemd := &system.Systemd{systemdDbus}
+	systemd := &system.Systemd{Conn: systemdDbus}
 
 	system := system.System{
 		Filesystem: &file.Atomic{},

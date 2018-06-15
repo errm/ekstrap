@@ -11,24 +11,28 @@ import (
 	"text/template"
 )
 
-type Filesystem interface {
+type filesystem interface {
 	Sync(io.Reader, string, os.FileMode) error
 }
 
-type Init interface {
+type initsystem interface {
 	EnsureRunning(string) error
 }
 
-type Hostname interface {
+type hostname interface {
 	SetHostname(string) error
 }
 
+// System represents the system we are configuring and
+// should be created with the interfaces to interact with it
 type System struct {
-	Filesystem Filesystem
-	Init       Init
-	Hostname   Hostname
+	Filesystem filesystem
+	Init       initsystem
+	Hostname   hostname
 }
 
+// Configure configures the system to connect to the EKS cluster given the node
+// and cluster metadata provided as arguments
 func (s System) Configure(n *node.Node, cluster *eks.Cluster) error {
 	if err := s.Hostname.SetHostname(*n.PrivateDnsName); err != nil {
 		return err
@@ -81,7 +85,7 @@ func base64decode(v string) (string, error) {
 type config struct {
 	template   *template.Template
 	path       string
-	filesystem Filesystem
+	filesystem filesystem
 }
 
 func (c config) write(data interface{}) error {

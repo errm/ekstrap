@@ -48,7 +48,7 @@ func TestEnsureRunning(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			d := &fakeDbusConn{}
-			s := &system.Systemd{d}
+			s := &system.Systemd{Conn: d}
 
 			err := s.EnsureRunning(tC.unit)
 			if err != nil {
@@ -105,7 +105,7 @@ func TestErrorHandling(t *testing.T) {
 			errs := make(map[string]error)
 			errs[tC.name] = tC.err
 			d := &fakeDbusConn{errors: errs}
-			s := &system.Systemd{d}
+			s := &system.Systemd{Conn: d}
 			err := s.EnsureRunning("kubelet.service")
 			if err != tC.err {
 				t.Errorf("Got error: %v, expected %v", err, tC.err)
