@@ -1,3 +1,19 @@
+/*
+Copyright 2018 Edward Robinson.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package system
 
 import (
@@ -87,7 +103,7 @@ WantedBy=multi-user.target`
 		t.Errorf("expected 1 restart got %v", len(init.restarted))
 	}
 
-	if init.restarted[0] != "kubelet" {
+	if init.restarted[0] != "kubelet.service" {
 		t.Errorf("expected the kubelet service to be restarted, but got %s", init.restarted[0])
 	}
 }
@@ -160,7 +176,7 @@ type FakeInit struct {
 	restarted []string
 }
 
-func (i *FakeInit) RestartService(name string) error {
+func (i *FakeInit) EnsureRunning(name string) error {
 	i.restarted = append(i.restarted, name)
 	return nil
 }

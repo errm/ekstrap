@@ -1,3 +1,19 @@
+/*
+Copyright 2018 Edward Robinson.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package main
 
 import (
@@ -13,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	eksSvc "github.com/aws/aws-sdk-go/service/eks"
+	"github.com/coreos/go-systemd/dbus"
 )
 
 var metadata = ec2metadata.New(session.Must(session.NewSession()))
@@ -28,22 +45,27 @@ func region() *string {
 
 func main() {
 	instance, err := node.New(ec2.New(sess), metadata)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	cluster, err := eks.Cluster(eksSvc.New(sess), instance.ClusterName())
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
+
+	systemdDbus, err := dbus.New()
+	check(err)
+
+	systemd := &system.Systemd{Conn: systemdDbus}
 
 	system := system.System{
 		Filesystem: &file.Atomic{},
-		Hostname:   &system.Systemd{},
-		Init:       &system.Systemd{},
+		Hostname:   systemd,
+		Init:       systemd,
 	}
 
-	if err := system.Configure(instance, cluster); err != nil {
+	check(system.Configure(instance, cluster))
+}
+
+func check(err error) {
+	if err != nil {
 		log.Fatal(err)
 	}
 }

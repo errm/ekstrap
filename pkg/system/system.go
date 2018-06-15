@@ -1,3 +1,19 @@
+/*
+Copyright 2018 Edward Robinson.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package system
 
 import (
@@ -11,24 +27,28 @@ import (
 	"text/template"
 )
 
-type Filesystem interface {
+type filesystem interface {
 	Sync(io.Reader, string, os.FileMode) error
 }
 
-type Init interface {
-	RestartService(string) error
+type initsystem interface {
+	EnsureRunning(string) error
 }
 
-type Hostname interface {
+type hostname interface {
 	SetHostname(string) error
 }
 
+// System represents the system we are configuring and
+// should be created with the interfaces to interact with it
 type System struct {
-	Filesystem Filesystem
-	Init       Init
-	Hostname   Hostname
+	Filesystem filesystem
+	Init       initsystem
+	Hostname   hostname
 }
 
+// Configure configures the system to connect to the EKS cluster given the node
+// and cluster metadata provided as arguments
 func (s System) Configure(n *node.Node, cluster *eks.Cluster) error {
 	if err := s.Hostname.SetHostname(*n.PrivateDnsName); err != nil {
 		return err
@@ -51,11 +71,7 @@ func (s System) Configure(n *node.Node, cluster *eks.Cluster) error {
 		config.write(info)
 	}
 
-	if err := s.Init.RestartService("kubelet"); err != nil {
-		return err
-	}
-
-	return nil
+	return s.Init.EnsureRunning("kubelet.service")
 }
 
 func (s System) configs() ([]config, error) {
@@ -85,7 +101,7 @@ func base64decode(v string) (string, error) {
 type config struct {
 	template   *template.Template
 	path       string
-	filesystem Filesystem
+	filesystem filesystem
 }
 
 func (c config) write(data interface{}) error {
