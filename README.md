@@ -7,13 +7,16 @@ ekstrap is a simple tool to bootstrap the configuration on Kuberntes nodes so th
 When run on an ec2 node ekstrap performs several tasks.
 
 * Discovers the name of your EKS cluster by looking for the `kubernetes.io/cluster/<name>` tag.
+* Discovers the enpoint and CA certificate of your EKS cluster.
 * Updates the hostname of the node to match the `PrivateDnsName` from the ec2 api.
-* Writes a kubeconfig file configured with the endpoint and ca certificate for you EKS cluster to `/var/lib/kubelet/kubeconfig`.
+* Writes a kubeconfig file configured to connect to your EKS cluster to `/var/lib/kubelet/kubeconfig`.
 * Writes a systemd unit file to `/lib/systemd/system/kubelet.service`
 * Writes the cluster CA certificate to `/etc/kubernetes/pki/ca.crt`
 * Restarts the kubelet unit
 
 You might choose to run ekstrap from a userdata script, or with a oneshot unit.
+
+In order to run ekstrap your instance should have an IAM instance profile that allows the `EC2::DescribeInstances` action and the `EKS::DescribeCluster` action. Both of these actions are allready included in the AWS managed policy `arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy` along with the other permissions that the kubelet requires to connect to your cluster.
 
 ## Development
 
