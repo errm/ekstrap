@@ -1,0 +1,11 @@
+[Unit]
+Description=Configures Kubernetes EKS Worker Node
+Before=kubelet.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/ekstrap
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target

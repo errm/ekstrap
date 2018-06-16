@@ -14,7 +14,7 @@ When run on an ec2 node ekstrap performs several tasks.
 * Writes the cluster CA certificate to `/etc/kubernetes/pki/ca.crt`
 * Restarts the kubelet unit
 
-You might choose to run ekstrap from a userdata script, or with a oneshot unit.
+You might choose to run ekstrap from a userdata script, or with a [oneshot unit](example/ekstrap.service), remeber that because it writes config files with strict permissions and interacts with the init system ekstrap needs to run as root.
 
 In order to run ekstrap your instance should have an IAM instance profile that allows the `EC2::DescribeInstances` action and the `EKS::DescribeCluster` action. Both of these actions are allready included in the AWS managed policy `arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy` along with the other permissions that the kubelet requires to connect to your cluster.
 
