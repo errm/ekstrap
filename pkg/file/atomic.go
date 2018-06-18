@@ -26,7 +26,7 @@ import (
 	"syscall"
 )
 
-//Atomic exposes an interface to atomicly write config files to the filesystem
+// Atomic exposes an interface to atomicly write config files to the filesystem
 type Atomic struct{}
 
 // Sync atomicly writes data to a file at the given path with the given permissions
