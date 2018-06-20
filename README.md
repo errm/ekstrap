@@ -60,6 +60,8 @@ but if you need to change or update them you will need to install [dep](https://
 
 If you want a tiny binary, install [upx](https://upx.github.io/) and run the `make compress` task.
 
+ekstrap currently only works with systemd, if you want us to support another init system please comment here https://github.com/errm/ekstrap/issues/28.
+
 ## Contributing
 
 If you want to contribute to this tool:
