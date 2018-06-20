@@ -21,6 +21,11 @@ test:
 build-releaser: Dockerfile.release
 	$(GORELEASER_BUILD)
 release: build-releaser .goreleaser.yml
-	$(GORELEASER) release --rm-dist
+	$(GORELEASER) release --rm-dist --debug
 snapshot: build-releaser .goreleaser.yml
 	$(GORELEASER) release --rm-dist --snapshot --debug
+
+clean:
+	rm -rf \
+		./ekstrap \
+		./dist/
