@@ -1,5 +1,7 @@
 # ekstrap
 
+[![Build Status](https://travis-ci.org/errm/ekstrap.svg?branch=master)](https://travis-ci.org/errm/ekstrap) [![Go Report Card](https://goreportcard.com/badge/github.com/errm/ekstrap)](https://goreportcard.com/report/github.com/errm/ekstrap)
+
 ekstrap is a simple tool to bootstrap the configuration on Kuberntes nodes so that they may join an [EKS](https://aws.amazon.com/eks/) cluster.
 
 ## Usage
