@@ -18,7 +18,7 @@ You might choose to run ekstrap from a userdata script, or with a [oneshot unit]
 
 In order to run ekstrap your instance should have an IAM instance profile that allows the `EC2::DescribeInstances` action and the `EKS::DescribeCluster` action. Both of these actions are already included in the AWS managed policy `arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy` along with the other permissions that the kubelet requires to connect to your cluster, it is recommended therefore to simply attach this policy to your instance role/profile.
 
-## Instalation
+## Installation
 
 The latest version of ekstrap can be downloaded from [github](https://github.com/errm/ekstrap/releases)
 
