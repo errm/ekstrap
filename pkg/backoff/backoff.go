@@ -43,7 +43,7 @@ func jittered(t int) time.Duration {
 		return time.Duration(0)
 	}
 	millis := t * 1000
-	//jitter arround the current second
+	//jitter around the current second
 	jitter := 500 - rand.Intn(1000)
 	return time.Duration(millis+jitter) * time.Millisecond
 }

@@ -32,7 +32,7 @@ type Atomic struct{}
 // Sync atomicly writes data to a file at the given path with the given permissions
 //
 // If the parent directory does not exit it is created
-// If the file allready exists and diff returns 0 then this command is a noopp
+// If the file already exists and diff returns 0 then this command is a noopp
 // Requires the diff utility to be present on the system, since it is specified in POSIX we assume it is
 func (a Atomic) Sync(data io.Reader, path string, perm os.FileMode) error {
 	dir := filepath.Dir(path)

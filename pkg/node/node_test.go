@@ -34,9 +34,9 @@ func init() {
 func TestNewNode(t *testing.T) {
 	e := &mockEC2{
 		tags: [][]*ec2.Tag{
-			[]*ec2.Tag{},
-			[]*ec2.Tag{},
-			[]*ec2.Tag{tag("kubernetes.io/cluster/cluster-name", "owned")},
+			{},
+			{},
+			{tag("kubernetes.io/cluster/cluster-name", "owned")},
 		},
 	}
 	metadata := mockMetadata{
@@ -143,9 +143,9 @@ func (m *mockEC2) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.Des
 	tags, m.tags = m.tags[0], m.tags[1:]
 	if len(input.InstanceIds) > 0 {
 		return &ec2.DescribeInstancesOutput{
-			Reservations: []*ec2.Reservation{&ec2.Reservation{
+			Reservations: []*ec2.Reservation{{
 				Instances: []*ec2.Instance{
-					&ec2.Instance{
+					{
 						InstanceId: input.InstanceIds[0],
 						Tags:       tags,
 					},

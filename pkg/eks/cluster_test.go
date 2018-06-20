@@ -60,13 +60,13 @@ func TestCluster(t *testing.T) {
 			clusters:      []*eks.Cluster{deletingCluster},
 			errors:        []error{nil},
 			expected:      nil,
-			expectedError: errors.New("Cannot use the EKS cluster: cluster-name, becuase it is DELETING"),
+			expectedError: errors.New("Cannot use the EKS cluster: cluster-name, because it is DELETING"),
 		},
 		{
 			clusters:      []*eks.Cluster{failedCluster},
 			errors:        []error{nil},
 			expected:      nil,
-			expectedError: errors.New("Cannot use the EKS cluster: cluster-name, becuase it is FAILED"),
+			expectedError: errors.New("Cannot use the EKS cluster: cluster-name, because it is FAILED"),
 		},
 		{
 			clusters:      []*eks.Cluster{creatingCluster, activeCluster},
