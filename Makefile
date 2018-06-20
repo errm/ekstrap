@@ -8,7 +8,7 @@ WORKDIR=/go/src/github.com/errm/ekstrap
 DOCKER = /usr/bin/env docker
 GORELEASER_VERSION = 0.77.2
 GORELEASER_BUILD = $(DOCKER) build --rm -f Dockerfile.release --build-arg GORELEASER_VERSION=$(GORELEASER_VERSION) -t ekstrap-release:$(GORELEASER_VERSION) .
-GORELEASER = $(DOCKER) run --rm --workdir $(WORKDIR) --volume $$(pwd):$(WORKDIR) ekstrap-release:$(GORELEASER_VERSION)
+GORELEASER = $(DOCKER) run --rm --volume $$(pwd):$(WORKDIR) ekstrap-release:$(GORELEASER_VERSION)
 
 all: test build
 build:
