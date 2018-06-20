@@ -1,0 +1,24 @@
+project_name: ekstrap
+builds:
+- env:
+  - CGO_ENABLED=0
+  goos:
+  - linux
+  goarch:
+  - amd64
+  hooks:
+    post: upx --brute ./dist/linux_amd64/ekstrap
+archive:
+  replacements:
+    linux: Linux
+    amd64: x86_64
+  wrap_in_directory: true
+  format: tar.gz
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+changelog:
+  sort: asc
+# sign:
+#   artifacts: checksum
+#   cmd: /usr/bin/env gpg
+#   signature: "${artifact}.sig"
