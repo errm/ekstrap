@@ -53,6 +53,17 @@ $ mv ekstrap_0.0.1_Linux_x86_64/ekstrap /usr/local/bin/
 
 Will run the tests and build a binary
 
+### Linting
+
+On CI we run some linting processes, to run localy first install gometalinter.
+
+```
+go get -u github.com/alecthomas/gometalinter
+gometalinter --install
+```
+
+Then run `make lint`
+
 ## Dependencies
 
 To build ekstrap you need [go](https://golang.org/)

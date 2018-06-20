@@ -6,8 +6,12 @@ go:
 services:
   - docker
 
+before_script:
+  - go get -u github.com/alecthomas/gometalinter
+  - gometalinter --install
+
 script:
-  - make all
+  - make all lint
 
 deploy:
   - provider: script
