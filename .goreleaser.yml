@@ -6,6 +6,8 @@ builds:
   - linux
   goarch:
   - amd64
+  hooks:
+    post: upx --brute ./dist/linux_amd64/ekstrap
 archive:
   replacements:
     linux: Linux
