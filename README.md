@@ -24,26 +24,21 @@ In order to run ekstrap your instance should have an IAM instance profile that a
 The latest version of ekstrap can be downloaded from [github](https://github.com/errm/ekstrap/releases)
 
 ```
-$ curl -LO https://github.com/errm/ekstrap/releases/download/v0.0.1/ekstrap_0.0.1_Linux_x86_64.tar.gz
+$ curl -LO https://github.com/errm/ekstrap/releases/download/v0.0.2/ekstrap_0.0.2_linux_x86_64
 ```
 
-You should check that the provided checksums match the archive before you extract it:
+You should check that the provided checksums match before you use the binary.
 
 ```
-$ curl -LO https://github.com/errm/ekstrap/releases/download/v0.0.1/ekstrap_0.0.1_checksums.txt
-$ sha256sum -c ekstrap_0.0.1_checksums.txt
-ekstrap_0.0.1_Linux_x86_64.tar.gz: OK
+$ curl -LO https://github.com/errm/ekstrap/releases/download/v0.0.2/ekstrap_0.0.2_checksums.txt
+$ sha256sum -c ekstrap_0.0.2_checksums.txt
+ekstrap_0.0.2_linux_x86_64: OK
 ```
 
-Extract the archive and copy the ekstrap binary into a suitable location e.g. `/usr/local/bin/ekstrap`
+Install the ekstrap binary into a suitable location e.g. `/usr/local/bin/ekstrap`
 
 ```
-$ tar -zxvf ekstrap_0.0.1_Linux_x86_64.tar.gz
-ekstrap_0.0.1_Linux_x86_64/LICENSE
-ekstrap_0.0.1_Linux_x86_64/README.md
-ekstrap_0.0.1_Linux_x86_64/ekstrap
-
-$ mv ekstrap_0.0.1_Linux_x86_64/ekstrap /usr/local/bin/
+$ install -m755 ekstrap_0.0.2_linux_x86_64 /usr/local/bin/ekstrap
 ```
 
 You might choose to run ekstrap from a userdata script:
