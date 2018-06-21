@@ -10,10 +10,8 @@ builds:
     post: upx --brute ./dist/linux_amd64/ekstrap
 archive:
   replacements:
-    linux: Linux
     amd64: x86_64
-  wrap_in_directory: true
-  format: tar.gz
+  format: binary
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
 changelog:
