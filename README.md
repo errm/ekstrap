@@ -54,7 +54,21 @@ You might choose to run ekstrap from a userdata script:
 ekstrap
 ```
 
-Or with a [oneshot unit](example/ekstrap.service).
+Or with a [oneshot unit](example/ekstrap.service)
+
+```systemd
+[Unit]
+Description=Configures Kubernetes EKS Worker Node
+Before=kubelet.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/ekstrap
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
+```
 
 Remember that because ekstrap writes config files with strict permissions and interacts with the init system, it needs to run as root.
 
