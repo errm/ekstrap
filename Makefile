@@ -18,6 +18,9 @@ compress: build
 	$(UPX) $(BINARY_NAME)
 test:
 	$(GOTEST) ./...
+install-linter:
+	$(GOCMD) get -u github.com/alecthomas/gometalinter
+	$(GOMETALINTER) --install
 lint:
 	$(GOMETALINTER)
 

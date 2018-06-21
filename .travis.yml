@@ -7,8 +7,7 @@ services:
   - docker
 
 before_script:
-  - go get -u github.com/alecthomas/gometalinter
-  - gometalinter --install
+  - make install-linter
 
 script:
   - make all lint

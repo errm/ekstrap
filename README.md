@@ -80,14 +80,12 @@ Will run the tests and build a binary
 
 ### Linting
 
-On CI we run some linting processes, to run localy first install gometalinter.
+On CI we run [some](.gometalinter.json) linting processes.
 
-```
-go get -u github.com/alecthomas/gometalinter
-gometalinter --install
-```
+To run localy:
 
-Then run `make lint`
+* First install gometalinter: `make install-linter`.
+* Then run: `make lint`
 
 ## Dependencies
 
