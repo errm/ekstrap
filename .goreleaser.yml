@@ -33,6 +33,14 @@ nfpm:
     rpm:
       replacements:
         amd64: x86_64
+dockers:
+- image: errm/ekstrap
+  dockerfile: Dockerfile
+  tag_templates:
+  - "{{ .Major }}"
+  - "{{ .Major }}.{{ .Minor }}"
+  - "{{ .Major }}.{{ .Minor }}.{{ .Patch }}"
+  - latest
 
 # sign:
 #   artifacts: checksum
