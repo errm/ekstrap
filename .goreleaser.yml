@@ -42,7 +42,7 @@ dockers:
   - "{{ .Major }}.{{ .Minor }}.{{ .Patch }}"
   - latest
 
-# sign:
-#   artifacts: checksum
-#   cmd: /usr/bin/env gpg
-#   signature: "${artifact}.sig"
+sign:
+  artifacts: checksum
+  cmd: /usr/bin/env gpg
+  signature: "${artifact}.sig"
