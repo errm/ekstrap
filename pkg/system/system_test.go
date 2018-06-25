@@ -33,7 +33,7 @@ func TestConfigure(t *testing.T) {
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal")
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18)
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -82,7 +82,7 @@ After=docker.service
 Requires=docker.service
 
 [Service]
-ExecStart=/usr/bin/kubelet   --address=0.0.0.0   --allow-privileged=true   --cloud-provider=aws   --cluster-dns=10.100.0.10   --cluster-domain=cluster.local   --cni-bin-dir=/opt/cni/bin   --cni-conf-dir=/etc/cni/net.d   --container-runtime=docker   --node-ip=10.6.28.199   --network-plugin=cni   --cgroup-driver=cgroupfs   --register-node=true   --kubeconfig=/var/lib/kubelet/kubeconfig   --feature-gates=RotateKubeletServerCertificate=true   --anonymous-auth=false   --client-ca-file=/etc/kubernetes/pki/ca.crt
+ExecStart=/usr/bin/kubelet   --address=0.0.0.0   --allow-privileged=true   --cloud-provider=aws   --cluster-dns=10.100.0.10   --cluster-domain=cluster.local   --cni-bin-dir=/opt/cni/bin   --cni-conf-dir=/etc/cni/net.d   --container-runtime=docker   --node-ip=10.6.28.199   --network-plugin=cni   --cgroup-driver=cgroupfs   --register-node=true   --kubeconfig=/var/lib/kubelet/kubeconfig   --feature-gates=RotateKubeletServerCertificate=true   --anonymous-auth=false   --client-ca-file=/etc/kubernetes/pki/ca.crt --max-pods=18
 
 Restart=on-failure
 Restart=always
@@ -108,12 +108,13 @@ WantedBy=multi-user.target`
 	}
 }
 
-func instance(ip, dnsName string) *node.Node {
+func instance(ip, dnsName string, maxPods int) *node.Node {
 	return &node.Node{
 		Instance: &ec2.Instance{
 			PrivateIpAddress: &ip,
 			PrivateDnsName:   &dnsName,
 		},
+		MaxPods: maxPods,
 	}
 }
 
