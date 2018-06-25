@@ -1,3 +1,4 @@
 ekstrap
 main
 dist/
+.travis/ekstrap.asc
