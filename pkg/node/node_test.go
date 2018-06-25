@@ -121,6 +121,56 @@ func TestClusterName(t *testing.T) {
 	}
 }
 
+func TestMaxPods(t *testing.T) {
+	tests := []struct {
+		instanceType string
+		expected     int
+	}{
+		{
+
+			instanceType: "c4.large",
+			expected:     27,
+		},
+		{
+
+			instanceType: "x1.16xlarge",
+			expected:     232,
+		},
+		{
+
+			instanceType: "t2.medium",
+			expected:     15,
+		},
+		{
+
+			instanceType: "unknown.instance",
+			expected:     0,
+		},
+	}
+
+	for _, test := range tests {
+		e := &mockEC2{
+			tags: [][]*ec2.Tag{
+				{tag("kubernetes.io/cluster/cluster-name", "owned")},
+			},
+			instanceType: test.instanceType,
+		}
+		metadata := mockMetadata{
+			data: map[string]string{
+				"instance-id": "1234",
+			},
+		}
+		node, err := New(e, metadata)
+		if err != nil {
+			t.Errorf("unexpected error: %s", err)
+		}
+
+		if node.MaxPods != test.expected {
+			t.Errorf("expected MaxPods for %v to be: %v, but it was %v", test.instanceType, test.expected, node.MaxPods)
+		}
+	}
+}
+
 func tag(key, value string) *ec2.Tag {
 	return &ec2.Tag{
 		Key:   &key,
@@ -130,8 +180,9 @@ func tag(key, value string) *ec2.Tag {
 
 type mockEC2 struct {
 	ec2iface.EC2API
-	tags [][]*ec2.Tag
-	err  error
+	tags         [][]*ec2.Tag
+	instanceType string
+	err          error
 }
 
 func (m *mockEC2) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error) {
@@ -146,8 +197,9 @@ func (m *mockEC2) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.Des
 			Reservations: []*ec2.Reservation{{
 				Instances: []*ec2.Instance{
 					{
-						InstanceId: input.InstanceIds[0],
-						Tags:       tags,
+						InstanceId:   input.InstanceIds[0],
+						Tags:         tags,
+						InstanceType: &m.instanceType,
 					},
 				},
 			},
