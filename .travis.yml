@@ -3,6 +3,11 @@ language: go
 go:
   - "1.10.x"
 
+addons:
+  apt:
+    packages:
+    - rpm
+
 services:
   - docker
 
@@ -12,9 +17,13 @@ before_script:
 script:
   - make all lint
 
+after_success:
+- test -n "$TRAVIS_TAG" && docker login -u=errm -p="$DOCKER_PASSWORD"
+
 deploy:
-  - provider: script
-    skip_cleanup: true
-    script: make release
-    on:
-      tags: true
+- provider: script
+  skip_cleanup: true
+  script: curl -sL https://git.io/goreleaser | bash
+  on:
+    tags: true
+    condition: $TRAVIS_OS_NAME = linux

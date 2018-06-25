@@ -24,6 +24,7 @@ install-linter:
 lint:
 	$(GOMETALINTER)
 
+# The following targets enable local testing of goreleaser.
 build-releaser: Dockerfile.release
 	$(GORELEASER_BUILD)
 release: build-releaser .goreleaser.yml

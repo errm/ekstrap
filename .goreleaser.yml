@@ -16,6 +16,32 @@ checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
 changelog:
   sort: asc
+nfpm:
+  vendor: Edward Robinson
+  homepage: https://github.com/errm/ekstrap/
+  maintainer: Edward Robinson <edward-robinson@cookpad.com>
+  description:  Bootstrap for EKS
+  license: Apache 2.0
+  formats:
+  - deb
+  - rpm
+  dependencies:
+  - dbus
+  - systemd
+  bindir: /usr/sbin
+  overrides:
+    rpm:
+      replacements:
+        amd64: x86_64
+dockers:
+- image: errm/ekstrap
+  dockerfile: Dockerfile
+  tag_templates:
+  - "{{ .Major }}"
+  - "{{ .Major }}.{{ .Minor }}"
+  - "{{ .Major }}.{{ .Minor }}.{{ .Patch }}"
+  - latest
+
 # sign:
 #   artifacts: checksum
 #   cmd: /usr/bin/env gpg
