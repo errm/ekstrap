@@ -44,5 +44,3 @@ dockers:
 
 sign:
   artifacts: checksum
-  cmd: /usr/bin/env gpg
-  signature: "${artifact}.sig"
