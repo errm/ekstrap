@@ -3,30 +3,16 @@ language: go
 go:
   - "1.10.x"
 
-addons:
-  apt:
-    packages:
-    - rpm
-    - upx
-
 services:
   - docker
 
-before_script:
-  - openssl aes-256-cbc -K $encrypted_189aefeda93d_key -iv $encrypted_189aefeda93d_iv -in .travis/ekstrap.asc.enc -out .travis/ekstrap.asc -d
-  - gpg --import .travis/ekstrap.asc
-  - make install-linter
+before_script: bash .travis/setup.sh
 
-script:
-  - make all lint
-
-after_success:
-- test -n "$TRAVIS_TAG" && docker login -u=errm -p="$DOCKER_PASSWORD"
+script: make
 
 deploy:
 - provider: script
   skip_cleanup: true
-  script: curl -sL https://git.io/goreleaser | bash
+  script: bash .travis/release.sh
   on:
     tags: true
-    condition: $TRAVIS_OS_NAME = linux
