@@ -23,6 +23,7 @@ import (
 	"github.com/errm/ekstrap/pkg/file"
 	"github.com/errm/ekstrap/pkg/node"
 	"github.com/errm/ekstrap/pkg/system"
+	"github.com/errm/ekstrap/pkg/util"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
@@ -37,8 +38,8 @@ var sess = session.Must(session.NewSession(&aws.Config{Region: region()}))
 
 func region() *string {
 	region, err := metadata.Region()
-	if err != nil {
-		log.Fatal(err)
+	if err != nil || !util.IsAWSRegion(region) {
+		log.Fatal("I don't seem to be running on an AWS EC2 instance. Can't reach the ec2 metadata service, or it's output seems to be invalid!")
 	}
 	return &region
 }
