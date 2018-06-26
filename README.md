@@ -1,6 +1,6 @@
 # ekstrap
 
-[![Build Status](https://travis-ci.org/errm/ekstrap.svg?branch=master)](https://travis-ci.org/errm/ekstrap) [![Go Report Card](https://goreportcard.com/badge/github.com/errm/ekstrap)](https://goreportcard.com/report/github.com/errm/ekstrap)
+[![deb package](https://img.shields.io/badge/deb-packagecloud.io-844fec.svg)](https://packagecloud.io/errm/ekstrap) [![rpm package](https://img.shields.io/badge/rpm-packagecloud.io-844fec.svg)](https://packagecloud.io/errm/ekstrap) [![Build Status](https://travis-ci.org/errm/ekstrap.svg?branch=master)](https://travis-ci.org/errm/ekstrap) [![Go Report Card](https://goreportcard.com/badge/github.com/errm/ekstrap)](https://goreportcard.com/report/github.com/errm/ekstrap)
 
 ekstrap is a simple tool to bootstrap the configuration on Kuberntes nodes so that they may join an [EKS](https://aws.amazon.com/eks/) cluster.
 
@@ -101,6 +101,10 @@ If you want to contribute to this tool:
 * Open an issue
 * Or a PR
 * Try to write tests if you are adding code / features
+
+## Thanks
+
+<a href="https://packagecloud.io/"><img height="46" width="158" alt="Private NPM registry and Maven, RPM, DEB, PyPi and RubyGem Repository · packagecloud" src="https://packagecloud.io/images/packagecloud-badge.png" /></a>
 
 ## License
 
