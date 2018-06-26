@@ -17,7 +17,7 @@ sudo -E apt-get -yq \
 gem install package_cloud
 
 curl -LO "https://github.com/goreleaser/goreleaser/releases/download/v$GORELEASER_VERSION/goreleaser_amd64.deb"
-echo "echo $GORELEASER_CHECKSUM goreleaser_amd64.deb" | sha256sum --check --status -
+echo "$GORELEASER_CHECKSUM goreleaser_amd64.deb" | sha256sum --check --status -
 sudo apt install ./goreleaser_amd64.deb
 
 make release
