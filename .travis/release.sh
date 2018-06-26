@@ -14,9 +14,23 @@ sudo -E apt-get -yq \
   --no-install-suggests \
   --no-install-recommends \
   --force-yes install rpm upx
+gem install package_cloud
 
 curl -LO "https://github.com/goreleaser/goreleaser/releases/download/v$GORELEASER_VERSION/goreleaser_amd64.deb"
 echo "echo $GORELEASER_CHECKSUM goreleaser_amd64.deb" | sha256sum --check --status -
 sudo apt install ./goreleaser_amd64.deb
 
 make release
+
+DEBS="ubuntu/xenial ubuntu/bionic debian/jessie debian/stretch debian/buster"
+HATS="el/6 el/7 fedora/27 fedora/28"
+
+for DISTRO in $DEBS
+do
+  package_cloud push errm/ekstrap/$DISTRO dist/ekstrap.deb
+done
+
+for DISTRO in $HATS
+do
+  package_cloud push errm/ekstrap/$DISTRO dist/ekstrap.rpm
+done

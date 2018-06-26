@@ -13,13 +13,14 @@ archive:
     amd64: x86_64
   format: binary
 checksum:
-  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+  name_template: "{{ .ProjectName }}_checksums.txt"
 changelog:
   sort: asc
 nfpm:
   vendor: Edward Robinson
   homepage: https://github.com/errm/ekstrap/
   maintainer: Edward Robinson <edward-robinson@cookpad.com>
+  name_template: '{{ .ProjectName }}'
   description:  Bootstrap for EKS
   license: Apache 2.0
   formats:
