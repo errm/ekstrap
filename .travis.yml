@@ -10,6 +10,9 @@ before_script: bash .travis/setup.sh
 
 script: make
 
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
 deploy:
 - provider: script
   skip_cleanup: true

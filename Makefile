@@ -14,7 +14,7 @@ build:
 compress: build
 	$(UPX) $(BINARY_NAME)
 test:
-	$(GOTEST) ./...
+	$(GOTEST) -coverprofile=coverage.txt -covermode=count ./...
 install-linter:
 	$(GOCMD) get -u github.com/alecthomas/gometalinter
 	$(GOMETALINTER) --install
