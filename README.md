@@ -97,6 +97,13 @@ Install the ekstrap binary into a suitable location e.g. `/usr/sbin/ekstrap`
 $ install -m755 ekstrap_0.0.4_linux_x86_64 /usr/sbin/ekstrap
 ```
 
+### Build from source
+
+* Install [go](https://golang.org/doc/install)
+* Checkout the git repo / grab the [latest source tarball](https://github.com/errm/ekstrap/releases)
+* Copy the source to $GOPATH/src/github.com/errm/ekstrap
+* Run `make install`
+
 ## Development
 
 `make`
