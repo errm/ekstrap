@@ -43,9 +43,9 @@ The simplest way to install ekstrap is to use our packagecloud repository.
 
 ### Debian / Ubuntu
 
-Follow the instusctions [here](https://packagecloud.io/errm/ekstrap/install#manual-deb) to add our repository.
+Follow the instructions [here](https://packagecloud.io/errm/ekstrap/install#manual-deb) to add our repository.
 
-or run:
+Or run:
 
 ```bash
 curl -s https://packagecloud.io/install/repositories/errm/ekstrap/script.deb.sh | sudo bash
@@ -59,11 +59,11 @@ sudo apt-get install ekstrap
 
 ### Fedora / RHEL / Amazon Linux
 
-Follow the instusctions [here](https://packagecloud.io/errm/ekstrap/install#manual-rpm) to add our repository.
+Follow the instructions [here](https://packagecloud.io/errm/ekstrap/install#manual-rpm) to add our repository.
 
 For Amazon Linux use the string for Enterprise Linux 6 (el/6)
 
-or run:
+Or run:
 
 ```bash
 curl -s https://packagecloud.io/install/repositories/errm/ekstrap/script.rpm.sh | sudo bash
@@ -77,7 +77,7 @@ sudo yum install ekstrap
 
 ### Manual Instalation
 
-ekstrap is also distrabuted as a static binary so can be installed on any appropriate system with simple tools.
+ekstrap is also distributed as a static binary so can be installed on any appropriate system with simple tools.
 
 ```
 $ curl -LO https://github.com/errm/ekstrap/releases/download/v0.0.4/ekstrap_0.0.4_linux_x86_64
@@ -114,7 +114,7 @@ Will run the tests and build a binary
 
 We run [some](.gometalinter.json) linting processes.
 
-To run localy:
+To run locally:
 
 * First install gometalinter: `make install-linter`.
 * Then run: `make lint`
