@@ -33,7 +33,7 @@ nfpm:
   empty_folders:
   - /etc/systemd/system
   files:
-    "systemd/": "/etc/systemd/system"
+    "systemd/ekstrap.service": "/lib/systemd/system/ekstrap.service"
   scripts:
     postinstall: "scripts/postinstall.sh"
   overrides:
