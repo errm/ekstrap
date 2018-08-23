@@ -30,6 +30,8 @@ nfpm:
   - dbus
   - systemd
   bindir: /usr/sbin
+  empty_folders:
+  - /etc/systemd/system
   files:
     "systemd/": "/etc/systemd/system"
   scripts:
