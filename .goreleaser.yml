@@ -30,6 +30,10 @@ nfpm:
   - dbus
   - systemd
   bindir: /usr/sbin
+  files:
+    "systemd/": "/etc/systemd/system"
+  scripts:
+    postinstall: "scripts/postinstall.sh"
   overrides:
     rpm:
       replacements:
