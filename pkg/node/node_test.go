@@ -58,6 +58,40 @@ func TestNewNode(t *testing.T) {
 	}
 }
 
+func TestClusterDNS(t *testing.T) {
+	e := &mockEC2{
+		PrivateIPAddress: "10.1.123.4",
+		tags: [][]*ec2.Tag{
+			{tag("kubernetes.io/cluster/cluster-name", "owned")},
+		},
+	}
+	node, err := New(e, mockMetadata{})
+
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+
+	if node.ClusterDNS != "172.20.0.10" {
+		t.Errorf("expected ClusterDNS to be 172.20.0.10 got: %s", node.ClusterDNS)
+	}
+
+	e = &mockEC2{
+		PrivateIPAddress: "172.16.45.45",
+		tags: [][]*ec2.Tag{
+			{tag("kubernetes.io/cluster/cluster-name", "owned")},
+		},
+	}
+	node, err = New(e, mockMetadata{})
+
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+
+	if node.ClusterDNS != "10.100.0.10" {
+		t.Errorf("expected ClusterDNS to be 10.100.0.10 got: %s", node.ClusterDNS)
+	}
+}
+
 func TestNewErrors(t *testing.T) {
 	metadataError := errors.New("error with metadata")
 	ec2Error := errors.New("error with metadata")
@@ -179,6 +213,7 @@ func tag(key, value string) *ec2.Tag {
 }
 
 type mockEC2 struct {
+	PrivateIPAddress string
 	ec2iface.EC2API
 	tags         [][]*ec2.Tag
 	instanceType string
@@ -197,9 +232,10 @@ func (m *mockEC2) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.Des
 			Reservations: []*ec2.Reservation{{
 				Instances: []*ec2.Instance{
 					{
-						InstanceId:   input.InstanceIds[0],
-						Tags:         tags,
-						InstanceType: &m.instanceType,
+						InstanceId:       input.InstanceIds[0],
+						Tags:             tags,
+						InstanceType:     &m.instanceType,
+						PrivateIpAddress: &m.PrivateIPAddress,
 					},
 				},
 			},
