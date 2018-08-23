@@ -30,7 +30,8 @@ import (
 // Node represents and EC2 instance.
 type Node struct {
 	*ec2.Instance
-	MaxPods int
+	MaxPods    int
+	ClusterDNS string
 }
 
 type metadataClient interface {
@@ -55,7 +56,7 @@ func New(e ec2iface.EC2API, m metadataClient) (*Node, error) {
 			return nil, err
 		}
 		instance := output.Reservations[0].Instances[0]
-		node := Node{Instance: instance, MaxPods: maxPods(instance.InstanceType)}
+		node := Node{Instance: instance, MaxPods: maxPods(instance.InstanceType), ClusterDNS: clusterDNS(instance.PrivateIpAddress)}
 		if node.ClusterName() == "" {
 			sleepFor := b.Duration(tries)
 			log.Printf("The kubernetes.io/cluster/<name> tag is not yet set, will try again in %s", sleepFor)
@@ -95,4 +96,11 @@ func maxPods(instanceType *string) int {
 		return 0
 	}
 	return enis * (ips - 1)
+}
+
+func clusterDNS(ip *string) string {
+	if ip != nil && len(*ip) > 3 && (*ip)[0:3] == "10." {
+		return "172.20.0.10"
+	}
+	return "10.100.0.10"
 }
