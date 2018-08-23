@@ -19,27 +19,11 @@ When run on an ec2 node ekstrap performs several tasks.
 
 In order to run ekstrap your instance should have an IAM instance profile that allows the `EC2::DescribeInstances` action and the `EKS::DescribeCluster` action. Both of these actions are already included in the AWS managed policy `arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy` along with the other permissions that the kubelet requires to connect to your cluster, it is recommended therefore to simply attach this policy to your instance role/profile.
 
-You might choose to run ekstrap with a [oneshot unit](example/ekstrap.service)
-
-```systemd
-[Unit]
-Description=Configures Kubernetes EKS Worker Node
-Before=kubelet.service
-
-[Service]
-Type=oneshot
-ExecStart=/usr/sbin/ekstrap
-RemainAfterExit=true
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Remember that because ekstrap writes config files with strict permissions and interacts with the init system, it needs to run as root.
-
 ## Installation
 
 The simplest way to install ekstrap is to use our packagecloud repository.
+
+If installed with the package a systemd unit will be installed and enabled, (but not started) so ekstrap will be run on the next boot.
 
 ### Debian / Ubuntu
 
@@ -96,6 +80,24 @@ Install the ekstrap binary into a suitable location e.g. `/usr/sbin/ekstrap`
 ```
 $ install -m755 ekstrap_0.0.4_linux_x86_64 /usr/sbin/ekstrap
 ```
+
+You might choose to run ekstrap with a [oneshot unit](systemd/ekstrap.service)
+
+```systemd
+[Unit]
+Description=Configures Kubernetes EKS Worker Node
+Before=kubelet.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/ekstrap
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Remember that because ekstrap writes config files with strict permissions and interacts with the init system, it needs to run as root.
 
 ### Build from source
 
