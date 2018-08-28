@@ -32,6 +32,7 @@ type Node struct {
 	*ec2.Instance
 	MaxPods    int
 	ClusterDNS string
+	Region     string
 }
 
 type metadataClient interface {
@@ -44,7 +45,7 @@ var b = backoff.Backoff{Seq: []int{1, 1, 2}}
 //
 // If the EC2 instance doesn't have the expected kubernetes tag, it will backoff and retry.
 // If it isn't able to query EC2 or there are any other errors, an error will be returned.
-func New(e ec2iface.EC2API, m metadataClient) (*Node, error) {
+func New(e ec2iface.EC2API, m metadataClient, region *string) (*Node, error) {
 	id, err := instanceID(m)
 	if err != nil {
 		return nil, err
@@ -56,7 +57,7 @@ func New(e ec2iface.EC2API, m metadataClient) (*Node, error) {
 			return nil, err
 		}
 		instance := output.Reservations[0].Instances[0]
-		node := Node{Instance: instance, MaxPods: maxPods(instance.InstanceType), ClusterDNS: clusterDNS(instance.PrivateIpAddress)}
+		node := Node{Instance: instance, MaxPods: maxPods(instance.InstanceType), ClusterDNS: clusterDNS(instance.PrivateIpAddress), Region: *region}
 		if node.ClusterName() == "" {
 			sleepFor := b.Duration(tries)
 			log.Printf("The kubernetes.io/cluster/<name> tag is not yet set, will try again in %s", sleepFor)

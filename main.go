@@ -45,7 +45,7 @@ func region() *string {
 }
 
 func main() {
-	instance, err := node.New(ec2.New(sess), metadata)
+	instance, err := node.New(ec2.New(sess), metadata, region())
 	check(err)
 
 	cluster, err := eks.Cluster(eksSvc.New(sess), instance.ClusterName())

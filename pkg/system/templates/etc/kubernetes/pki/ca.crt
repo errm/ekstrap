@@ -1,0 +1,1 @@
+{{.Cluster.CertificateAuthority.Data | b64dec}}
