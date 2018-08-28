@@ -68,7 +68,7 @@ users:
   user:
     exec:
       apiVersion: client.authentication.k8s.io/v1alpha1
-      command: /usr/local/bin/aws-iam-authenticator
+      command: aws-iam-authenticator
       args:
         - token
         - "-i"
