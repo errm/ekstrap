@@ -3,3 +3,4 @@ main
 dist/
 .travis/ekstrap.asc
 coverage.txt
+**/*-packr.go
