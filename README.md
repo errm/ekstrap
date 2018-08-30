@@ -19,6 +19,18 @@ When run on an ec2 node ekstrap performs several tasks.
 
 In order to run ekstrap your instance should have an IAM instance profile that allows the `EC2::DescribeInstances` action and the `EKS::DescribeCluster` action. Both of these actions are already included in the AWS managed policy `arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy` along with the other permissions that the kubelet requires to connect to your cluster, it is recommended therefore to simply attach this policy to your instance role/profile.
 
+### Extra Arguments
+
+If you wish to provide extra aruguments to the kubelet you can create a drop-in that sets the `KUBELET_EXTRA_ARGS` environment variable.
+
+For example to [taint nodes with GPU hardware](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/#example-use-cases) you could add:
+
+_/etc/systemd/system/kubelet.service.d/30-kubelet-extra-args.conf_
+```
+[Service]
+Environment='KUBELET_EXTRA_ARGS=--register-with-taints="gpu=true:PreferNoSchedule"'
+```
+
 ## Installation
 
 The simplest way to install ekstrap is to use our packagecloud repository.

@@ -44,7 +44,8 @@ func TestNewNode(t *testing.T) {
 			"instance-id": "1234",
 		},
 	}
-	node, err := New(e, metadata)
+	region := "us-east-1"
+	node, err := New(e, metadata, &region)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
@@ -56,6 +57,10 @@ func TestNewNode(t *testing.T) {
 	if node.ClusterName() != "cluster-name" {
 		t.Error("Expected returned node to have cluster-name")
 	}
+
+	if node.Region != region {
+		t.Errorf("Expected %s, to eq %s", node.Region, region)
+	}
 }
 
 func TestClusterDNS(t *testing.T) {
@@ -65,7 +70,8 @@ func TestClusterDNS(t *testing.T) {
 			{tag("kubernetes.io/cluster/cluster-name", "owned")},
 		},
 	}
-	node, err := New(e, mockMetadata{})
+	region := "us-east-1"
+	node, err := New(e, mockMetadata{}, &region)
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
@@ -81,7 +87,7 @@ func TestClusterDNS(t *testing.T) {
 			{tag("kubernetes.io/cluster/cluster-name", "owned")},
 		},
 	}
-	node, err = New(e, mockMetadata{})
+	node, err = New(e, mockMetadata{}, &region)
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
@@ -99,7 +105,8 @@ func TestNewErrors(t *testing.T) {
 	e := &mockEC2{err: ec2Error}
 	metadata := mockMetadata{err: metadataError}
 
-	_, err := New(e, metadata)
+	region := "us-east-1"
+	_, err := New(e, metadata, &region)
 	if err != metadataError {
 		t.Errorf("expected error: %s to be %s", err, metadataError)
 	}
@@ -110,7 +117,7 @@ func TestNewErrors(t *testing.T) {
 		},
 	}
 
-	_, err = New(e, metadata)
+	_, err = New(e, metadata, &region)
 	if err != ec2Error {
 		t.Errorf("expected error: %s to be %s", err, ec2Error)
 	}
@@ -194,7 +201,8 @@ func TestMaxPods(t *testing.T) {
 				"instance-id": "1234",
 			},
 		}
-		node, err := New(e, metadata)
+		region := "us-west-2"
+		node, err := New(e, metadata, &region)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}

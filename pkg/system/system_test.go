@@ -46,8 +46,8 @@ func TestConfigure(t *testing.T) {
 		t.Errorf("unexpected error %v", err)
 	}
 
-	if len(fs.files) != 3 {
-		t.Errorf("expected 3 files, got %v", len(fs.files))
+	if len(fs.files) != 5 {
+		t.Errorf("expected 5 files, got %v", len(fs.files))
 	}
 
 	expected := `apiVersion: v1
@@ -68,11 +68,12 @@ users:
   user:
     exec:
       apiVersion: client.authentication.k8s.io/v1alpha1
-      command: /usr/local/bin/heptio-authenticator-aws
+      command: aws-iam-authenticator
       args:
         - token
         - "-i"
-        - "aws-om-cluster"`
+        - "aws-om-cluster"
+`
 	fs.Check(t, "/var/lib/kubelet/kubeconfig", expected, 0640)
 
 	expected = `[Unit]
@@ -82,18 +83,46 @@ After=docker.service
 Requires=docker.service
 
 [Service]
-ExecStart=/usr/bin/kubelet   --address=0.0.0.0   --allow-privileged=true   --cloud-provider=aws   --cluster-dns=172.20.0.10   --cluster-domain=cluster.local   --cni-bin-dir=/opt/cni/bin   --cni-conf-dir=/etc/cni/net.d   --container-runtime=docker   --node-ip=10.6.28.199   --network-plugin=cni   --cgroup-driver=cgroupfs   --register-node=true   --kubeconfig=/var/lib/kubelet/kubeconfig   --feature-gates=RotateKubeletServerCertificate=true   --anonymous-auth=false   --client-ca-file=/etc/kubernetes/pki/ca.crt --max-pods=18
+ExecStart=/usr/bin/kubelet \
+  --address=0.0.0.0 \
+  --authentication-token-webhook \
+  --authorization-mode=Webhook \
+  --allow-privileged=true \
+  --cloud-provider=aws \
+  --cluster-domain=cluster.local \
+  --cni-bin-dir=/opt/cni/bin \
+  --cni-conf-dir=/etc/cni/net.d \
+  --container-runtime=docker \
+  --network-plugin=cni \
+  --cgroup-driver=cgroupfs \
+  --register-node=true \
+  --kubeconfig=/var/lib/kubelet/kubeconfig \
+  --feature-gates=RotateKubeletServerCertificate=true \
+  --anonymous-auth=false \
+  --client-ca-file=/etc/kubernetes/pki/ca.crt $KUBELET_ARGS $KUBELET_MAX_PODS $KUBELET_EXTRA_ARGS
 
-Restart=on-failure
 Restart=always
 StartLimitInterval=0
-RestartSec=10
+RestartSec=5
 
 [Install]
-WantedBy=multi-user.target`
-	fs.Check(t, "/lib/systemd/system/kubelet.service", expected, 0640)
+WantedBy=multi-user.target
+`
+	fs.Check(t, "/etc/systemd/system/kubelet.service", expected, 0640)
 
-	fs.Check(t, "/etc/kubernetes/pki/ca.crt", "thisisthecertdata", 0640)
+	expected = `[Service]
+Environment='KUBELET_ARGS=--node-ip=10.6.28.199 --cluster-dns=172.20.0.10 --pod-infra-container-image=602401143452.dkr.ecr.us-east-1.amazonaws.com/eks/pause-amd64:3.1'
+`
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/10-kubelet-args.conf", expected, 0640)
+
+	expected = `[Service]
+Environment='KUBELET_MAX_PODS=--max-pods=18'
+`
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/20-max-pods.conf", expected, 0640)
+
+	expected = `thisisthecertdata
+`
+	fs.Check(t, "/etc/kubernetes/pki/ca.crt", expected, 0640)
 
 	if hn.hostname != "ip-10-6-28-199.us-west-2.compute.internal" {
 		t.Errorf("expected hostname to be ip-10-6-28-199.us-west-2.compute.internal, got %v", hn.hostname)
@@ -116,6 +145,7 @@ func instance(ip, dnsName string, maxPods int) *node.Node {
 		},
 		MaxPods:    maxPods,
 		ClusterDNS: "172.20.0.10",
+		Region:     "us-east-1",
 	}
 }
 
@@ -151,7 +181,7 @@ func (f *FakeFileSystem) Check(t *testing.T, path string, contents string, mode 
 			}
 			actual := string(file.Contents)
 			if contents != actual {
-				t.Errorf("File contents not as expected:\nactual:\n%v\n\nexpected:\n%v", actual, contents)
+				t.Errorf("File contents not as expected:\nactual:\n%#v\n\nexpected:\n%#v", actual, contents)
 			}
 			return
 		}

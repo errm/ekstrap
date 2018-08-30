@@ -19,6 +19,7 @@ package system
 import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/errm/ekstrap/pkg/node"
+	"github.com/gobuffalo/packr"
 
 	"bytes"
 	"encoding/base64"
@@ -76,18 +77,17 @@ func (s System) Configure(n *node.Node, cluster *eks.Cluster) error {
 
 func (s System) configs() ([]config, error) {
 	configs := []config{}
-	for path, content := range defaultTemplates {
-		template, err := template.New(path).Funcs(template.FuncMap{"b64dec": base64decode}).Parse(content)
-		if err != nil {
-			return configs, err
-		}
+	box := packr.NewBox("./templates")
+	err := box.Walk(func(path string, f packr.File) error {
+		template, err := template.New(path).Funcs(template.FuncMap{"b64dec": base64decode}).Parse(box.String(path))
 		configs = append(configs, config{
 			template:   template,
-			path:       path,
+			path:       "/" + path,
 			filesystem: s.Filesystem,
 		})
-	}
-	return configs, nil
+		return err
+	})
+	return configs, err
 }
 
 func base64decode(v string) (string, error) {

@@ -61,6 +61,12 @@
   version = "v1.37.0"
 
 [[projects]]
+  name = "github.com/gobuffalo/packr"
+  packages = ["."]
+  revision = "ee1318b82b25993be2f7161d48315e1f14697528"
+  version = "v1.13.3"
+
+[[projects]]
   name = "github.com/godbus/dbus"
   packages = ["."]
   revision = "a389bdde4dd695d414e47b755e95e72b7826432c"
@@ -71,9 +77,15 @@
   packages = ["."]
   revision = "0b12d6b5"
 
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "482eea9cba7742f1011974dced7494cf39c1dee25f210b9428bcac925fb2718c"
+  inputs-digest = "8f6b5b225fb730eff4303934af4af5d24758bed424f5275344b80ab6ff547267"
   solver-name = "gps-cdcl"
   solver-version = 1

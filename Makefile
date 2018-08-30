@@ -9,7 +9,7 @@ GOMETALINTER = gometalinter ./...
 GORELEASER = goreleaser release --rm-dist --debug
 
 all: test lint $(BINARY_NAME)
-$(BINARY_NAME):
+$(BINARY_NAME): generate
 	$(GOBUILD) -o $(BINARY_NAME) -v
 compress: $(BINARY_NAME)
 	$(UPX) $(BINARY_NAME)
@@ -20,13 +20,14 @@ install-linter:
 	$(GOMETALINTER) --install
 lint:
 	$(GOMETALINTER)
-release: .goreleaser.yml
+release: generate .goreleaser.yml
 	$(GORELEASER)
 snapshot: .goreleaser.yml
 	$(GORELEASER) --snapshot
 install: $(BINARY_NAME)
 	install -m755 $(BINARY_NAME) /usr/sbin
-
+generate:
+	$(GOCMD) generate
 clean:
 	rm -rf \
 		./$(BINARY_NAME) \

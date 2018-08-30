@@ -16,6 +16,8 @@ limitations under the License.
 
 package main
 
+//go:generate packr
+
 import (
 	"log"
 
@@ -45,7 +47,7 @@ func region() *string {
 }
 
 func main() {
-	instance, err := node.New(ec2.New(sess), metadata)
+	instance, err := node.New(ec2.New(sess), metadata, region())
 	check(err)
 
 	cluster, err := eks.Cluster(eksSvc.New(sess), instance.ClusterName())
