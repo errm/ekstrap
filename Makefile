@@ -1,7 +1,7 @@
 GOCMD=go
 GOBUILD=$(GOCMD) build -ldflags="-s -w"
 GOTEST=$(GOCMD) test
-UPX=upx --brute
+UPX=upx -9
 BINARY_NAME=ekstrap
 WORKDIR=/go/src/github.com/errm/ekstrap
 
@@ -12,6 +12,7 @@ all: test lint $(BINARY_NAME)
 $(BINARY_NAME): generate
 	$(GOBUILD) -o $(BINARY_NAME) -v
 compress: $(BINARY_NAME)
+	strip -x $(BINARY_NAME)
 	$(UPX) $(BINARY_NAME)
 test:
 	$(GOTEST) -coverprofile=coverage.txt -covermode=count ./...
