@@ -46,8 +46,8 @@ func TestConfigure(t *testing.T) {
 		t.Errorf("unexpected error %v", err)
 	}
 
-	if len(fs.files) != 5 {
-		t.Errorf("expected 5 files, got %v", len(fs.files))
+	if len(fs.files) != 6 {
+		t.Errorf("expected 6 files, got %v", len(fs.files))
 	}
 
 	expected := `apiVersion: v1
@@ -93,13 +93,14 @@ ExecStart=/usr/bin/kubelet \
   --cni-bin-dir=/opt/cni/bin \
   --cni-conf-dir=/etc/cni/net.d \
   --container-runtime=docker \
+  --eviction-hard=memory.available<100Mi,nodefs.available<10%,nodefs.inodesFree<5% \
   --network-plugin=cni \
   --cgroup-driver=cgroupfs \
   --register-node=true \
   --kubeconfig=/var/lib/kubelet/kubeconfig \
   --feature-gates=RotateKubeletServerCertificate=true \
   --anonymous-auth=false \
-  --client-ca-file=/etc/kubernetes/pki/ca.crt $KUBELET_ARGS $KUBELET_MAX_PODS $KUBELET_EXTRA_ARGS
+  --client-ca-file=/etc/kubernetes/pki/ca.crt $KUBELET_ARGS $KUBELET_MAX_PODS $KUBELET_KUBE_RESERVED $KUBELET_EXTRA_ARGS
 
 Restart=always
 StartLimitInterval=0
@@ -119,6 +120,11 @@ Environment='KUBELET_ARGS=--node-ip=10.6.28.199 --cluster-dns=172.20.0.10 --pod-
 Environment='KUBELET_MAX_PODS=--max-pods=18'
 `
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/20-max-pods.conf", expected, 0640)
+
+	expected = `[Service]
+Environment='KUBELET_KUBE_RESERVED=--kube-reserved=cpu=60m,memory=960Mi'
+`
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/30-kube-reserved.conf", expected, 0640)
 
 	expected = `thisisthecertdata
 `
@@ -143,9 +149,11 @@ func instance(ip, dnsName string, maxPods int) *node.Node {
 			PrivateIpAddress: &ip,
 			PrivateDnsName:   &dnsName,
 		},
-		MaxPods:    maxPods,
-		ClusterDNS: "172.20.0.10",
-		Region:     "us-east-1",
+		MaxPods:        maxPods,
+		ClusterDNS:     "172.20.0.10",
+		Region:         "us-east-1",
+		ReservedCPU:    "60m",
+		ReservedMemory: "960Mi",
 	}
 }
 

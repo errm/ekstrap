@@ -213,6 +213,153 @@ func TestMaxPods(t *testing.T) {
 	}
 }
 
+func TestReservedCPU(t *testing.T) {
+	tests := []struct {
+		instanceType string
+		expected     string
+	}{
+		{
+
+			instanceType: "m3.medium",
+			expected:     "60m",
+		},
+		{
+
+			instanceType: "m5.large",
+			expected:     "70m",
+		},
+		{
+
+			instanceType: "c5.xlarge",
+			expected:     "80m",
+		},
+		{
+
+			instanceType: "c5.2xlarge",
+			expected:     "90m",
+		},
+		{
+
+			instanceType: "h1.4xlarge",
+			expected:     "110m",
+		},
+		{
+
+			instanceType: "i3.8xlarge",
+			expected:     "150m",
+		},
+		{
+
+			instanceType: "m5.24xlarge",
+			expected:     "310m",
+		},
+		{
+
+			instanceType: "x1e.32xlarge",
+			expected:     "390m",
+		},
+		{
+
+			instanceType: "unexpected.instance",
+			expected:     "60m",
+		},
+	}
+
+	for _, test := range tests {
+		e := &mockEC2{
+			tags: [][]*ec2.Tag{
+				{tag("kubernetes.io/cluster/cluster-name", "owned")},
+			},
+			instanceType: test.instanceType,
+		}
+		metadata := mockMetadata{
+			data: map[string]string{
+				"instance-id": "1234",
+			},
+		}
+		region := "us-west-2"
+		node, err := New(e, metadata, &region)
+		if err != nil {
+			t.Errorf("unexpected error: %s", err)
+		}
+
+		if node.ReservedCPU != test.expected {
+			t.Errorf("expected ReservedCPU for %v to be: %v, but it was %v", test.instanceType, test.expected, node.ReservedCPU)
+		}
+	}
+}
+
+func TestMemory(t *testing.T) {
+	tests := []struct {
+		instanceType string
+		expected     string
+	}{
+		{
+
+			instanceType: "m3.medium",
+			expected:     "960Mi",
+		},
+		{
+
+			instanceType: "m5.large",
+			expected:     "1843Mi",
+		},
+		{
+
+			instanceType: "c5.2xlarge",
+			expected:     "2662Mi",
+		},
+		{
+
+			instanceType: "h1.4xlarge",
+			expected:     "5612Mi",
+		},
+		{
+
+			instanceType: "i3.8xlarge",
+			expected:     "11919Mi",
+		},
+		{
+
+			instanceType: "m5.24xlarge",
+			expected:     "14787Mi",
+		},
+		{
+
+			instanceType: "x1e.32xlarge",
+			expected:     "86876Mi",
+		},
+		{
+
+			instanceType: "unexpected.instance",
+			expected:     "960Mi",
+		},
+	}
+
+	for _, test := range tests {
+		e := &mockEC2{
+			tags: [][]*ec2.Tag{
+				{tag("kubernetes.io/cluster/cluster-name", "owned")},
+			},
+			instanceType: test.instanceType,
+		}
+		metadata := mockMetadata{
+			data: map[string]string{
+				"instance-id": "1234",
+			},
+		}
+		region := "us-west-2"
+		node, err := New(e, metadata, &region)
+		if err != nil {
+			t.Errorf("unexpected error: %s", err)
+		}
+
+		if node.ReservedMemory != test.expected {
+			t.Errorf("expected ReservedMemory for %v to be: %v, but it was %v", test.instanceType, test.expected, node.ReservedMemory)
+		}
+	}
+}
+
 func tag(key, value string) *ec2.Tag {
 	return &ec2.Tag{
 		Key:   &key,

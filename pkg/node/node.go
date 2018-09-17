@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 
+	"fmt"
 	"log"
 	"regexp"
 	"time"
@@ -30,9 +31,11 @@ import (
 // Node represents and EC2 instance.
 type Node struct {
 	*ec2.Instance
-	MaxPods    int
-	ClusterDNS string
-	Region     string
+	MaxPods        int
+	ReservedCPU    string
+	ReservedMemory string
+	ClusterDNS     string
+	Region         string
 }
 
 type metadataClient interface {
@@ -57,7 +60,7 @@ func New(e ec2iface.EC2API, m metadataClient, region *string) (*Node, error) {
 			return nil, err
 		}
 		instance := output.Reservations[0].Instances[0]
-		node := Node{Instance: instance, MaxPods: maxPods(instance.InstanceType), ClusterDNS: clusterDNS(instance.PrivateIpAddress), Region: *region}
+		node := Node{Instance: instance, MaxPods: maxPods(instance.InstanceType), ReservedCPU: reservedCPU(instance.InstanceType), ReservedMemory: reservedMemory(instance.InstanceType), ClusterDNS: clusterDNS(instance.PrivateIpAddress), Region: *region}
 		if node.ClusterName() == "" {
 			sleepFor := b.Duration(tries)
 			log.Printf("The kubernetes.io/cluster/<name> tag is not yet set, will try again in %s", sleepFor)
@@ -97,6 +100,54 @@ func maxPods(instanceType *string) int {
 		return 0
 	}
 	return enis * (ips - 1)
+}
+
+// The calculation here is based on information found in the GKE documentation
+// here: https://cloud.google.com/kubernetes-engine/docs/concepts/cluster-architecture
+// I think that it should also apply to AWS
+func reservedCPU(instanceType *string) string {
+	cores := InstanceCores[*instanceType]
+	reserved := 0.0
+	for i := 0; i < cores; i++ {
+		if i < 1 {
+			reserved += 60.0
+		} else if i < 2 {
+			reserved += 10.0
+		} else if i < 4 {
+			reserved += 5.0
+		} else {
+			reserved += 2.5
+		}
+	}
+	if reserved == 0.0 {
+		reserved = 60.0
+	}
+	return fmt.Sprintf("%.0fm", reserved)
+}
+
+// The calculation here is based on information found in the GKE documentation
+// here: https://cloud.google.com/kubernetes-engine/docs/concepts/cluster-architecture
+// I think that it should also apply to AWS
+func reservedMemory(instanceType *string) string {
+	memory := InstanceMemory[*instanceType]
+	reserved := 0.0
+	for i := 0; i < memory; i++ {
+		if i < 4096 {
+			reserved += 0.25
+		} else if i < 8192 {
+			reserved += 0.2
+		} else if i < 16384 {
+			reserved += 0.1
+		} else if i < 131072 {
+			reserved += 0.06
+		} else {
+			reserved += 0.02
+		}
+	}
+	if reserved == 0.0 {
+		reserved = 960.0
+	}
+	return fmt.Sprintf("%.0fMi", reserved)
 }
 
 func clusterDNS(ip *string) string {

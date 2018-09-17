@@ -15,6 +15,7 @@ When run on an ec2 node ekstrap performs several tasks.
 * Writes a kubeconfig file configured to connect to your EKS cluster to `/var/lib/kubelet/kubeconfig`.
 * Writes a systemd unit file to `/lib/systemd/system/kubelet.service`.
 * Writes the cluster CA certificate to `/etc/kubernetes/pki/ca.crt`.
+* Calculates an appropriate value for for [--kube-reserved](https://kubernetes.io/docs/tasks/administer-cluster/reserve-compute-resources/)
 * Restarts the kubelet unit.
 
 In order to run ekstrap your instance should have an IAM instance profile that allows the `EC2::DescribeInstances` action and the `EKS::DescribeCluster` action. Both of these actions are already included in the AWS managed policy `arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy` along with the other permissions that the kubelet requires to connect to your cluster, it is recommended therefore to simply attach this policy to your instance role/profile.
@@ -25,7 +26,7 @@ If you wish to provide extra aruguments to the kubelet you can create a drop-in 
 
 For example to [taint nodes with GPU hardware](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/#example-use-cases) you could add:
 
-_/etc/systemd/system/kubelet.service.d/30-kubelet-extra-args.conf_
+_/etc/systemd/system/kubelet.service.d/40-kubelet-extra-args.conf_
 ```
 [Service]
 Environment='KUBELET_EXTRA_ARGS=--register-with-taints="gpu=true:PreferNoSchedule"'
