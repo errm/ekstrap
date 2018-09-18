@@ -7,7 +7,7 @@ builds:
   goarch:
   - amd64
   hooks:
-    post: strip -x ./dist/linux_amd64/ekstrap && upx -9 ./dist/linux_amd64/ekstrap
+    post: .travis/squash.sh
 archive:
   replacements:
     amd64: x86_64
