@@ -108,14 +108,15 @@ func maxPods(instanceType *string) int {
 func reservedCPU(instanceType *string) string {
 	cores := InstanceCores[*instanceType]
 	reserved := 0.0
-	for i := 0; i < cores; i++ {
-		if i < 1 {
+	for core := 1; core <= cores; core++ {
+		switch core {
+		case 1:
 			reserved += 60.0
-		} else if i < 2 {
+		case 2:
 			reserved += 10.0
-		} else if i < 4 {
+		case 3, 4:
 			reserved += 5.0
-		} else {
+		default:
 			reserved += 2.5
 		}
 	}
@@ -132,15 +133,16 @@ func reservedMemory(instanceType *string) string {
 	memory := InstanceMemory[*instanceType]
 	reserved := 0.0
 	for i := 0; i < memory; i++ {
-		if i < 4096 {
+		switch {
+		case i < 4096:
 			reserved += 0.25
-		} else if i < 8192 {
+		case i < 8192:
 			reserved += 0.2
-		} else if i < 16384 {
+		case i < 16384:
 			reserved += 0.1
-		} else if i < 131072 {
+		case i < 131072:
 			reserved += 0.06
-		} else {
+		default:
 			reserved += 0.02
 		}
 	}
