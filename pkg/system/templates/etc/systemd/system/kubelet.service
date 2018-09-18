@@ -15,13 +15,14 @@ ExecStart=/usr/bin/kubelet \
   --cni-bin-dir=/opt/cni/bin \
   --cni-conf-dir=/etc/cni/net.d \
   --container-runtime=docker \
+  --eviction-hard=memory.available<100Mi,nodefs.available<10%,nodefs.inodesFree<5% \
   --network-plugin=cni \
   --cgroup-driver=cgroupfs \
   --register-node=true \
   --kubeconfig=/var/lib/kubelet/kubeconfig \
   --feature-gates=RotateKubeletServerCertificate=true \
   --anonymous-auth=false \
-  --client-ca-file=/etc/kubernetes/pki/ca.crt $KUBELET_ARGS $KUBELET_MAX_PODS $KUBELET_EXTRA_ARGS
+  --client-ca-file=/etc/kubernetes/pki/ca.crt $KUBELET_ARGS $KUBELET_MAX_PODS $KUBELET_KUBE_RESERVED $KUBELET_EXTRA_ARGS
 
 Restart=always
 StartLimitInterval=0
