@@ -121,7 +121,7 @@ func reservedCPU(instanceType *string) string {
 		}
 	}
 	if reserved == 0.0 {
-		reserved = 60.0
+		return ""
 	}
 	return fmt.Sprintf("%.0fm", reserved)
 }
@@ -147,7 +147,7 @@ func reservedMemory(instanceType *string) string {
 		}
 	}
 	if reserved == 0.0 {
-		reserved = 960.0
+		return ""
 	}
 	return fmt.Sprintf("%.0fMi", reserved)
 }

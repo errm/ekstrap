@@ -261,7 +261,7 @@ func TestReservedCPU(t *testing.T) {
 		{
 
 			instanceType: "unexpected.instance",
-			expected:     "60m",
+			expected:     "",
 		},
 	}
 
@@ -332,7 +332,7 @@ func TestMemory(t *testing.T) {
 		{
 
 			instanceType: "unexpected.instance",
-			expected:     "960Mi",
+			expected:     "",
 		},
 	}
 

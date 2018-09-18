@@ -33,7 +33,7 @@ func TestConfigure(t *testing.T) {
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18)
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "60m", "960Mi")
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -143,7 +143,29 @@ Environment='KUBELET_KUBE_RESERVED=--kube-reserved=cpu=60m,memory=960Mi'
 	}
 }
 
-func instance(ip, dnsName string, maxPods int) *node.Node {
+func TestConfigureNoReserved(t *testing.T) {
+	fs := &FakeFileSystem{}
+	hn := &FakeHostname{}
+	init := &FakeInit{}
+
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "")
+	c := cluster(
+		"aws-om-cluster",
+		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
+		"dGhpc2lzdGhlY2VydGRhdGE=",
+	)
+	system := System{Filesystem: fs, Hostname: hn, Init: init}
+	err := system.Configure(i, c)
+
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
+
+	expected := `[Service]`
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/30-kube-reserved.conf", expected, 0640)
+}
+
+func instance(ip, dnsName string, maxPods int, reservedCPU, reservedMemory string) *node.Node {
 	return &node.Node{
 		Instance: &ec2.Instance{
 			PrivateIpAddress: &ip,
@@ -152,8 +174,8 @@ func instance(ip, dnsName string, maxPods int) *node.Node {
 		MaxPods:        maxPods,
 		ClusterDNS:     "172.20.0.10",
 		Region:         "us-east-1",
-		ReservedCPU:    "60m",
-		ReservedMemory: "960Mi",
+		ReservedCPU:    reservedCPU,
+		ReservedMemory: reservedMemory,
 	}
 }
 
