@@ -121,6 +121,7 @@ func reservedCPU(instanceType *string) string {
 		}
 	}
 	if reserved == 0.0 {
+		log.Printf("The number of CPU cores is unknown for the %s instance type, --kube-reserved will not be configured", *instanceType)
 		return ""
 	}
 	return fmt.Sprintf("%.0fm", reserved)
@@ -147,6 +148,7 @@ func reservedMemory(instanceType *string) string {
 		}
 	}
 	if reserved == 0.0 {
+		log.Printf("The Memory of the %s instance type is unknown, --kube-reserved will not be configured", *instanceType)
 		return ""
 	}
 	return fmt.Sprintf("%.0fMi", reserved)
