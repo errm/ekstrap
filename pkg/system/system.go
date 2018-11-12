@@ -69,7 +69,9 @@ func (s System) Configure(n *node.Node, cluster *eks.Cluster) error {
 	}
 
 	for _, config := range configs {
-		config.write(info)
+		if config.write(info) != nil {
+			return err
+		}
 	}
 
 	return s.Init.EnsureRunning("kubelet.service")

@@ -14,7 +14,7 @@ $(BINARY_NAME): generate
 compress: $(BINARY_NAME)
 	strip -x $(BINARY_NAME)
 	$(UPX) $(BINARY_NAME)
-test:
+test: generate
 	$(GOTEST) -coverprofile=coverage.txt -covermode=count ./...
 install-linter:
 	$(GOCMD) get -u github.com/alecthomas/gometalinter
