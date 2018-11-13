@@ -33,7 +33,7 @@ func TestConfigure(t *testing.T) {
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "60m", "960Mi", false)
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "60m", "960Mi", []string{}, []string{})
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -46,8 +46,8 @@ func TestConfigure(t *testing.T) {
 		t.Errorf("unexpected error %v", err)
 	}
 
-	if len(fs.files) != 7 {
-		t.Errorf("expected 7 files, got %v", len(fs.files))
+	if len(fs.files) != 8 {
+		t.Errorf("expected 8 files, got %v", len(fs.files))
 	}
 
 	expected := `apiVersion: v1
@@ -100,7 +100,7 @@ ExecStart=/usr/bin/kubelet \
   --kubeconfig=/var/lib/kubelet/kubeconfig \
   --feature-gates=RotateKubeletServerCertificate=true \
   --anonymous-auth=false \
-  --client-ca-file=/etc/kubernetes/pki/ca.crt $KUBELET_ARGS $KUBELET_MAX_PODS $KUBELET_KUBE_RESERVED $KUBELET_SPOT_ARGS $KUBELET_EXTRA_ARGS
+  --client-ca-file=/etc/kubernetes/pki/ca.crt $KUBELET_ARGS $KUBELET_MAX_PODS $KUBELET_KUBE_RESERVED $KUBELET_NODE_LABELS $KUBELET_NODE_TAINTS $KUBELET_EXTRA_ARGS
 
 Restart=always
 StartLimitInterval=0
@@ -126,10 +126,11 @@ Environment='KUBELET_KUBE_RESERVED=--kube-reserved=cpu=60m,memory=960Mi'
 `
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/30-kube-reserved.conf", expected, 0640)
 
-	expected = `[Service]
-Environment='KUBELET_SPOT_ARGS=--node-labels="node-role.kubernetes.io/worker=true" --register-with-taints="node-role.kubernetes.io/worker=true:PreferNoSchedule"'
-`
-	fs.Check(t, "/etc/systemd/system/kubelet.service.d/40-spot-args.conf", expected, 0640)
+	expected = `[Service]`
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/40-labels.conf", expected, 0640)
+
+	expected = `[Service]`
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/50-taints.conf", expected, 0640)
 
 	expected = `thisisthecertdata
 `
@@ -153,7 +154,7 @@ func TestConfigureNoReserved(t *testing.T) {
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", false)
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", []string{}, []string{})
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -170,12 +171,16 @@ func TestConfigureNoReserved(t *testing.T) {
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/30-kube-reserved.conf", expected, 0640)
 }
 
-func TestConfigureSpotInstance(t *testing.T) {
+func TestConfigureLabels(t *testing.T) {
 	fs := &FakeFileSystem{}
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", true)
+	labels := []string{
+		"node-role.kubernetes.io/worker=true",
+	}
+
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", labels, []string{})
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -189,12 +194,69 @@ func TestConfigureSpotInstance(t *testing.T) {
 	}
 
 	expected := `[Service]
-Environment='KUBELET_SPOT_ARGS=--node-labels="node-role.kubernetes.io/spot-worker=true"'
+Environment='KUBELET_NODE_LABELS=--node-labels="node-role.kubernetes.io/worker=true"'
 `
-	fs.Check(t, "/etc/systemd/system/kubelet.service.d/40-spot-args.conf", expected, 0640)
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/40-labels.conf", expected, 0640)
 }
 
-func instance(ip, dnsName string, maxPods int, reservedCPU, reservedMemory string, spot bool) *node.Node {
+func TestConfigureMultipleLabels(t *testing.T) {
+	fs := &FakeFileSystem{}
+	hn := &FakeHostname{}
+	init := &FakeInit{}
+
+	labels := []string{
+		"node-role.kubernetes.io/worker=true",
+		"gpu-type=K80",
+	}
+
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", labels, []string{})
+	c := cluster(
+		"aws-om-cluster",
+		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
+		"dGhpc2lzdGhlY2VydGRhdGE=",
+	)
+	system := System{Filesystem: fs, Hostname: hn, Init: init}
+	err := system.Configure(i, c)
+
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
+
+	expected := `[Service]
+Environment='KUBELET_NODE_LABELS=--node-labels="node-role.kubernetes.io/worker=true,gpu-type=K80"'
+`
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/40-labels.conf", expected, 0640)
+}
+
+func TestConfigureTaints(t *testing.T) {
+	fs := &FakeFileSystem{}
+	hn := &FakeHostname{}
+	init := &FakeInit{}
+
+	taints := []string{
+		"node-role.kubernetes.io/worker=true:PreferNoSchedule",
+	}
+
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", []string{}, taints)
+	c := cluster(
+		"aws-om-cluster",
+		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
+		"dGhpc2lzdGhlY2VydGRhdGE=",
+	)
+	system := System{Filesystem: fs, Hostname: hn, Init: init}
+	err := system.Configure(i, c)
+
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
+
+	expected := `[Service]
+Environment='KUBELET_NODE_TAINTS=--register-with-taints="node-role.kubernetes.io/worker=true:PreferNoSchedule"'
+`
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/50-taints.conf", expected, 0640)
+}
+
+func instance(ip, dnsName string, maxPods int, reservedCPU, reservedMemory string, labels, taints []string) *node.Node {
 	return &node.Node{
 		Instance: &ec2.Instance{
 			PrivateIpAddress: &ip,
@@ -205,7 +267,8 @@ func instance(ip, dnsName string, maxPods int, reservedCPU, reservedMemory strin
 		Region:         "us-east-1",
 		ReservedCPU:    reservedCPU,
 		ReservedMemory: reservedMemory,
-		Spot:           spot,
+		Labels:         labels,
+		Taints:         taints,
 	}
 }
 

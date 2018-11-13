@@ -36,7 +36,8 @@ type Node struct {
 	ReservedMemory string
 	ClusterDNS     string
 	Region         string
-	Spot           bool
+	Labels         []string
+	Taints         []string
 }
 
 type metadataClient interface {
@@ -61,7 +62,16 @@ func New(e ec2iface.EC2API, m metadataClient, region *string) (*Node, error) {
 			return nil, err
 		}
 		instance := output.Reservations[0].Instances[0]
-		node := Node{Instance: instance, MaxPods: maxPods(instance.InstanceType), ReservedCPU: reservedCPU(instance.InstanceType), ReservedMemory: reservedMemory(instance.InstanceType), ClusterDNS: clusterDNS(instance.PrivateIpAddress), Region: *region, Spot: spot(instance.InstanceLifecycle)}
+		node := Node{
+			Instance:       instance,
+			MaxPods:        maxPods(instance.InstanceType),
+			ReservedCPU:    reservedCPU(instance.InstanceType),
+			ReservedMemory: reservedMemory(instance.InstanceType),
+			ClusterDNS:     clusterDNS(instance.PrivateIpAddress),
+			Region:         *region,
+			Labels:         lables(instance.Tags),
+			Taints:         taints(instance.Tags),
+		}
 		if node.ClusterName() == "" {
 			sleepFor := b.Duration(tries)
 			log.Printf("The kubernetes.io/cluster/<name> tag is not yet set, will try again in %s", sleepFor)
@@ -86,11 +96,26 @@ func (n *Node) ClusterName() string {
 	return ""
 }
 
-func spot(lifecycleType *string) bool {
-	if lifecycleType != nil && *lifecycleType == ec2.InstanceLifecycleTypeSpot {
-		return true
+func lables(tags []*ec2.Tag) []string {
+	var l []string
+	re := regexp.MustCompile(`k8s.io\/cluster-autoscaler\/node-template\/label\/(.*)`)
+	for _, t := range tags {
+		if matches := re.FindStringSubmatch(*t.Key); len(matches) == 2 {
+			l = append(l, matches[1]+"="+*t.Value)
+		}
 	}
-	return false
+	return l
+}
+
+func taints(tags []*ec2.Tag) []string {
+	var ts []string
+	re := regexp.MustCompile(`k8s.io\/cluster-autoscaler\/node-template\/taint\/(.*)`)
+	for _, t := range tags {
+		if matches := re.FindStringSubmatch(*t.Key); len(matches) == 2 {
+			ts = append(ts, matches[1]+"="+*t.Value)
+		}
+	}
+	return ts
 }
 
 func instanceID(m metadataClient) (*string, error) {
