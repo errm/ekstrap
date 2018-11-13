@@ -360,57 +360,6 @@ func TestMemory(t *testing.T) {
 	}
 }
 
-func TestSpot(t *testing.T) {
-	tests := []struct {
-		lifecycleType string
-		expected      bool
-	}{
-		{
-
-			lifecycleType: ec2.InstanceLifecycleTypeSpot,
-			expected:      true,
-		},
-		{
-
-			lifecycleType: ec2.InstanceLifecycleTypeScheduled,
-			expected:      false,
-		},
-		{
-			// OnDemand instances do not return this field
-			lifecycleType: "",
-			expected:      false,
-		},
-		{
-
-			lifecycleType: "something-unexpected",
-			expected:      false,
-		},
-	}
-
-	for _, test := range tests {
-		e := &mockEC2{
-			tags: [][]*ec2.Tag{
-				{tag("kubernetes.io/cluster/cluster-name", "owned")},
-			},
-			lifecycleType: test.lifecycleType,
-		}
-		metadata := mockMetadata{
-			data: map[string]string{
-				"instance-id": "1234",
-			},
-		}
-		region := "us-west-2"
-		node, err := New(e, metadata, &region)
-		if err != nil {
-			t.Errorf("unexpected error: %s", err)
-		}
-
-		if node.Spot != test.expected {
-			t.Errorf("expected Spot for %v to be: %v, but it was %v", test.lifecycleType, test.expected, node.Spot)
-		}
-	}
-}
-
 func tag(key, value string) *ec2.Tag {
 	return &ec2.Tag{
 		Key:   &key,
@@ -421,10 +370,9 @@ func tag(key, value string) *ec2.Tag {
 type mockEC2 struct {
 	PrivateIPAddress string
 	ec2iface.EC2API
-	tags          [][]*ec2.Tag
-	instanceType  string
-	err           error
-	lifecycleType string
+	tags         [][]*ec2.Tag
+	instanceType string
+	err          error
 }
 
 func (m *mockEC2) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error) {
@@ -434,20 +382,15 @@ func (m *mockEC2) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.Des
 	var tags []*ec2.Tag
 	//Pop the first set of tags
 	tags, m.tags = m.tags[0], m.tags[1:]
-	var lifecycleType *string
-	if m.lifecycleType != "" {
-		lifecycleType = &m.lifecycleType
-	}
 	if len(input.InstanceIds) > 0 {
 		return &ec2.DescribeInstancesOutput{
 			Reservations: []*ec2.Reservation{{
 				Instances: []*ec2.Instance{
 					{
-						InstanceId:        input.InstanceIds[0],
-						Tags:              tags,
-						InstanceType:      &m.instanceType,
-						PrivateIpAddress:  &m.PrivateIPAddress,
-						InstanceLifecycle: lifecycleType,
+						InstanceId:       input.InstanceIds[0],
+						Tags:             tags,
+						InstanceType:     &m.instanceType,
+						PrivateIpAddress: &m.PrivateIPAddress,
 					},
 				},
 			},
