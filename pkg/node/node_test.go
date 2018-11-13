@@ -18,6 +18,7 @@ package node
 
 import (
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/errm/ekstrap/pkg/backoff"
@@ -60,6 +61,72 @@ func TestNewNode(t *testing.T) {
 
 	if node.Region != region {
 		t.Errorf("Expected %s, to eq %s", node.Region, region)
+	}
+}
+
+func TestNodeLabels(t *testing.T) {
+	e := &mockEC2{
+		tags: [][]*ec2.Tag{
+			{},
+			{},
+			{
+				tag("kubernetes.io/cluster/cluster-name", "owned"),
+				tag("k8s.io/cluster-autoscaler/node-template/label/node-role.kubernetes.io/spot-worker", "true"),
+				tag("k8s.io/cluster-autoscaler/node-template/label/nvidia-gpu", "K80"),
+			},
+		},
+	}
+	metadata := mockMetadata{
+		data: map[string]string{
+			"instance-id": "1234",
+		},
+	}
+	region := "us-east-1"
+	node, err := New(e, metadata, &region)
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+
+	expected := []string{
+		"node-role.kubernetes.io/spot-worker=true",
+		"nvidia-gpu=K80",
+	}
+
+	if !reflect.DeepEqual(node.Labels, expected) {
+		t.Errorf("Expected node.Labels to be %v but was %v", expected, node.Labels)
+	}
+}
+
+func TestNodeTaints(t *testing.T) {
+	e := &mockEC2{
+		tags: [][]*ec2.Tag{
+			{},
+			{},
+			{
+				tag("kubernetes.io/cluster/cluster-name", "owned"),
+				tag("k8s.io/cluster-autoscaler/node-template/label/foo", "bar"),
+				tag("k8s.io/cluster-autoscaler/node-template/taint/dedicated", "foo:NoSchedule"),
+				tag("k8s.io/cluster-autoscaler/node-template/label/nvidia-gpu", "K80"),
+			},
+		},
+	}
+	metadata := mockMetadata{
+		data: map[string]string{
+			"instance-id": "1234",
+		},
+	}
+	region := "us-east-1"
+	node, err := New(e, metadata, &region)
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+
+	expected := []string{
+		"dedicated=foo:NoSchedule",
+	}
+
+	if !reflect.DeepEqual(node.Taints, expected) {
+		t.Errorf("Expected node.Taints to be %v but was %v", expected, node.Taints)
 	}
 }
 
