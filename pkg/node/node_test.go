@@ -146,8 +146,8 @@ func TestNodeTaints(t *testing.T) {
 		"dedicated=foo:NoSchedule",
 	}
 
-	if !reflect.DeepEqual(node.Taints, expected) {
-		t.Errorf("Expected node.Taints to be %v but was %v", expected, node.Taints)
+	if !reflect.DeepEqual(node.Taints(), expected) {
+		t.Errorf("Expected node.Taints to be %v but was %v", expected, node.Taints())
 	}
 }
 

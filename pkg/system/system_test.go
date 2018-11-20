@@ -33,7 +33,7 @@ func TestConfigure(t *testing.T) {
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "60m", "960Mi", map[string]string{}, []string{}, false)
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "60m", "960Mi", map[string]string{}, false)
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -156,7 +156,7 @@ func TestConfigureNoReserved(t *testing.T) {
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", map[string]string{}, []string{}, false)
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", map[string]string{}, false)
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -182,7 +182,7 @@ func TestConfigureSpotInstanceLabels(t *testing.T) {
 		"node-role.kubernetes.io/worker": "true",
 	}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", labels, []string{}, true)
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", labels, true)
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -210,7 +210,7 @@ func TestConfigureLabels(t *testing.T) {
 		"k8s.io/cluster-autoscaler/node-template/label/gpu-type": "K80",
 	}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", tags, []string{}, false)
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", tags, false)
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -234,11 +234,11 @@ func TestConfigureTaints(t *testing.T) {
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	taints := []string{
-		"node-role.kubernetes.io/worker=true:PreferNoSchedule",
+	tags := map[string]string{
+		"k8s.io/cluster-autoscaler/node-template/taint/node-role.kubernetes.io/worker": "true:PreferNoSchedule",
 	}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", map[string]string{}, taints, false)
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", tags, false)
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -257,7 +257,7 @@ Environment='KUBELET_NODE_TAINTS=--register-with-taints="node-role.kubernetes.io
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/50-taints.conf", expected, 0640)
 }
 
-func instance(ip, dnsName string, maxPods int, reservedCPU, reservedMemory string, tags map[string]string, taints []string, spot bool) *node.Node {
+func instance(ip, dnsName string, maxPods int, reservedCPU, reservedMemory string, tags map[string]string, spot bool) *node.Node {
 	var ec2tags []*ec2.Tag
 	for key, value := range tags {
 		ec2tags = append(ec2tags, &ec2.Tag{
@@ -282,7 +282,6 @@ func instance(ip, dnsName string, maxPods int, reservedCPU, reservedMemory strin
 		Region:         "us-east-1",
 		ReservedCPU:    reservedCPU,
 		ReservedMemory: reservedMemory,
-		Taints:         taints,
 	}
 }
 

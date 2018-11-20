@@ -36,7 +36,6 @@ type Node struct {
 	ReservedMemory string
 	ClusterDNS     string
 	Region         string
-	Taints         []string
 }
 
 type metadataClient interface {
@@ -68,7 +67,6 @@ func New(e ec2iface.EC2API, m metadataClient, region *string) (*Node, error) {
 			ReservedMemory: reservedMemory(instance.InstanceType),
 			ClusterDNS:     clusterDNS(instance.PrivateIpAddress),
 			Region:         *region,
-			Taints:         taints(instance.Tags),
 		}
 		if node.ClusterName() == "" {
 			sleepFor := b.Duration(tries)
@@ -124,15 +122,15 @@ func (n *Node) Spot() bool {
 	return false
 }
 
-func taints(tags []*ec2.Tag) []string {
-	var ts []string
+func (n *Node) Taints() []string {
+	var taints []string
 	re := regexp.MustCompile(`k8s.io\/cluster-autoscaler\/node-template\/taint\/(.*)`)
-	for _, t := range tags {
+	for _, t := range n.Tags {
 		if matches := re.FindStringSubmatch(*t.Key); len(matches) == 2 {
-			ts = append(ts, matches[1]+"="+*t.Value)
+			taints = append(taints, matches[1]+"="+*t.Value)
 		}
 	}
-	return ts
+	return taints
 }
 
 func instanceID(m metadataClient) (*string, error) {
