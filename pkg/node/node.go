@@ -36,7 +36,6 @@ type Node struct {
 	ReservedMemory string
 	ClusterDNS     string
 	Region         string
-	Labels         []string
 	Taints         []string
 }
 
@@ -69,7 +68,6 @@ func New(e ec2iface.EC2API, m metadataClient, region *string) (*Node, error) {
 			ReservedMemory: reservedMemory(instance.InstanceType),
 			ClusterDNS:     clusterDNS(instance.PrivateIpAddress),
 			Region:         *region,
-			Labels:         lables(instance.Tags),
 			Taints:         taints(instance.Tags),
 		}
 		if node.ClusterName() == "" {
@@ -96,15 +94,34 @@ func (n *Node) ClusterName() string {
 	return ""
 }
 
-func lables(tags []*ec2.Tag) []string {
-	var l []string
+func (n *Node) Labels() []string {
+	labels := make(map[string]string)
+
+	if n.Spot() {
+		labels["node-role.kubernetes.io/spot-worker"] = "true"
+	} else {
+		labels["node-role.kubernetes.io/worker"] = "true"
+	}
+
 	re := regexp.MustCompile(`k8s.io\/cluster-autoscaler\/node-template\/label\/(.*)`)
-	for _, t := range tags {
+	for _, t := range n.Tags {
 		if matches := re.FindStringSubmatch(*t.Key); len(matches) == 2 {
-			l = append(l, matches[1]+"="+*t.Value)
+			labels[matches[1]] = *t.Value
 		}
 	}
+
+	l := make([]string, 0, len(labels))
+	for key, value := range labels {
+		l = append(l, key+"="+value)
+	}
 	return l
+}
+
+func (n *Node) Spot() bool {
+	if n.InstanceLifecycle != nil && *n.InstanceLifecycle == ec2.InstanceLifecycleTypeSpot {
+		return true
+	}
+	return false
 }
 
 func taints(tags []*ec2.Tag) []string {

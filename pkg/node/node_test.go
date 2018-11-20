@@ -71,7 +71,6 @@ func TestNodeLabels(t *testing.T) {
 			{},
 			{
 				tag("kubernetes.io/cluster/cluster-name", "owned"),
-				tag("k8s.io/cluster-autoscaler/node-template/label/node-role.kubernetes.io/spot-worker", "true"),
 				tag("k8s.io/cluster-autoscaler/node-template/label/nvidia-gpu", "K80"),
 			},
 		},
@@ -88,12 +87,34 @@ func TestNodeLabels(t *testing.T) {
 	}
 
 	expected := []string{
+		"node-role.kubernetes.io/worker=true",
+		"nvidia-gpu=K80",
+	}
+
+	if !reflect.DeepEqual(node.Labels(), expected) {
+		t.Errorf("Expected node.Labels to be %v but was %v", expected, node.Labels())
+	}
+
+	e = &mockEC2{
+		tags: [][]*ec2.Tag{
+			{},
+			{},
+			{
+				tag("kubernetes.io/cluster/cluster-name", "owned"),
+				tag("k8s.io/cluster-autoscaler/node-template/label/nvidia-gpu", "K80"),
+			},
+		},
+		instanceLifecycle: ec2.InstanceLifecycleTypeSpot,
+	}
+	node, err = New(e, metadata, &region)
+
+	expected = []string{
 		"node-role.kubernetes.io/spot-worker=true",
 		"nvidia-gpu=K80",
 	}
 
-	if !reflect.DeepEqual(node.Labels, expected) {
-		t.Errorf("Expected node.Labels to be %v but was %v", expected, node.Labels)
+	if !reflect.DeepEqual(node.Labels(), expected) {
+		t.Errorf("Expected node.Labels to be %v but was %v", expected, node.Labels())
 	}
 }
 
@@ -437,9 +458,10 @@ func tag(key, value string) *ec2.Tag {
 type mockEC2 struct {
 	PrivateIPAddress string
 	ec2iface.EC2API
-	tags         [][]*ec2.Tag
-	instanceType string
-	err          error
+	tags              [][]*ec2.Tag
+	instanceType      string
+	instanceLifecycle string
+	err               error
 }
 
 func (m *mockEC2) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error) {
@@ -449,15 +471,21 @@ func (m *mockEC2) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.Des
 	var tags []*ec2.Tag
 	//Pop the first set of tags
 	tags, m.tags = m.tags[0], m.tags[1:]
+
+	var instanceLifecycle *string
+	if m.instanceLifecycle != "" {
+		instanceLifecycle = &m.instanceLifecycle
+	}
 	if len(input.InstanceIds) > 0 {
 		return &ec2.DescribeInstancesOutput{
 			Reservations: []*ec2.Reservation{{
 				Instances: []*ec2.Instance{
 					{
-						InstanceId:       input.InstanceIds[0],
-						Tags:             tags,
-						InstanceType:     &m.instanceType,
-						PrivateIpAddress: &m.PrivateIPAddress,
+						InstanceId:        input.InstanceIds[0],
+						Tags:              tags,
+						InstanceType:      &m.instanceType,
+						PrivateIpAddress:  &m.PrivateIPAddress,
+						InstanceLifecycle: instanceLifecycle,
 					},
 				},
 			},

@@ -33,7 +33,7 @@ func TestConfigure(t *testing.T) {
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "60m", "960Mi", []string{}, []string{})
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "60m", "960Mi", map[string]string{}, []string{}, false)
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -126,7 +126,9 @@ Environment='KUBELET_KUBE_RESERVED=--kube-reserved=cpu=60m,memory=960Mi'
 `
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/30-kube-reserved.conf", expected, 0640)
 
-	expected = `[Service]`
+	expected = `[Service]
+Environment='KUBELET_NODE_LABELS=--node-labels="node-role.kubernetes.io/worker=true"'
+`
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/40-labels.conf", expected, 0640)
 
 	expected = `[Service]`
@@ -154,7 +156,7 @@ func TestConfigureNoReserved(t *testing.T) {
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", []string{}, []string{})
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", map[string]string{}, []string{}, false)
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -171,16 +173,16 @@ func TestConfigureNoReserved(t *testing.T) {
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/30-kube-reserved.conf", expected, 0640)
 }
 
-func TestConfigureLabels(t *testing.T) {
+func TestConfigureSpotInstanceLabels(t *testing.T) {
 	fs := &FakeFileSystem{}
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	labels := []string{
-		"node-role.kubernetes.io/worker=true",
+	labels := map[string]string{
+		"node-role.kubernetes.io/worker": "true",
 	}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", labels, []string{})
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", labels, []string{}, true)
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -194,22 +196,21 @@ func TestConfigureLabels(t *testing.T) {
 	}
 
 	expected := `[Service]
-Environment='KUBELET_NODE_LABELS=--node-labels="node-role.kubernetes.io/worker=true"'
+Environment='KUBELET_NODE_LABELS=--node-labels="node-role.kubernetes.io/spot-worker=true"'
 `
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/40-labels.conf", expected, 0640)
 }
 
-func TestConfigureMultipleLabels(t *testing.T) {
+func TestConfigureLabels(t *testing.T) {
 	fs := &FakeFileSystem{}
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	labels := []string{
-		"node-role.kubernetes.io/worker=true",
-		"gpu-type=K80",
+	tags := map[string]string{
+		"k8s.io/cluster-autoscaler/node-template/label/gpu-type": "K80",
 	}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", labels, []string{})
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", tags, []string{}, false)
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -237,7 +238,7 @@ func TestConfigureTaints(t *testing.T) {
 		"node-role.kubernetes.io/worker=true:PreferNoSchedule",
 	}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", []string{}, taints)
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", map[string]string{}, taints, false)
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -256,18 +257,31 @@ Environment='KUBELET_NODE_TAINTS=--register-with-taints="node-role.kubernetes.io
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/50-taints.conf", expected, 0640)
 }
 
-func instance(ip, dnsName string, maxPods int, reservedCPU, reservedMemory string, labels, taints []string) *node.Node {
+func instance(ip, dnsName string, maxPods int, reservedCPU, reservedMemory string, tags map[string]string, taints []string, spot bool) *node.Node {
+	var ec2tags []*ec2.Tag
+	for key, value := range tags {
+		ec2tags = append(ec2tags, &ec2.Tag{
+			Key:   &key,
+			Value: &value,
+		})
+	}
+	var instanceLifecycle *string
+	if spot {
+		il := ec2.InstanceLifecycleTypeSpot
+		instanceLifecycle = &il
+	}
 	return &node.Node{
 		Instance: &ec2.Instance{
-			PrivateIpAddress: &ip,
-			PrivateDnsName:   &dnsName,
+			PrivateIpAddress:  &ip,
+			PrivateDnsName:    &dnsName,
+			Tags:              ec2tags,
+			InstanceLifecycle: instanceLifecycle,
 		},
 		MaxPods:        maxPods,
 		ClusterDNS:     "172.20.0.10",
 		Region:         "us-east-1",
 		ReservedCPU:    reservedCPU,
 		ReservedMemory: reservedMemory,
-		Labels:         labels,
 		Taints:         taints,
 	}
 }
