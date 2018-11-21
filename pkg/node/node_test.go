@@ -107,6 +107,9 @@ func TestNodeLabels(t *testing.T) {
 		instanceLifecycle: ec2.InstanceLifecycleTypeSpot,
 	}
 	node, err = New(e, metadata, &region)
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
 
 	expected = []string{
 		"node-role.kubernetes.io/spot-worker=true",
@@ -165,8 +168,8 @@ func TestClusterDNS(t *testing.T) {
 		t.Errorf("unexpected error: %s", err)
 	}
 
-	if node.ClusterDNS != "172.20.0.10" {
-		t.Errorf("expected ClusterDNS to be 172.20.0.10 got: %s", node.ClusterDNS)
+	if node.ClusterDNS() != "172.20.0.10" {
+		t.Errorf("expected ClusterDNS to be 172.20.0.10 got: %s", node.ClusterDNS())
 	}
 
 	e = &mockEC2{
@@ -181,8 +184,8 @@ func TestClusterDNS(t *testing.T) {
 		t.Errorf("unexpected error: %s", err)
 	}
 
-	if node.ClusterDNS != "10.100.0.10" {
-		t.Errorf("expected ClusterDNS to be 10.100.0.10 got: %s", node.ClusterDNS)
+	if node.ClusterDNS() != "10.100.0.10" {
+		t.Errorf("expected ClusterDNS to be 10.100.0.10 got: %s", node.ClusterDNS())
 	}
 }
 
@@ -295,8 +298,8 @@ func TestMaxPods(t *testing.T) {
 			t.Errorf("unexpected error: %s", err)
 		}
 
-		if node.MaxPods != test.expected {
-			t.Errorf("expected MaxPods for %v to be: %v, but it was %v", test.instanceType, test.expected, node.MaxPods)
+		if node.MaxPods() != test.expected {
+			t.Errorf("expected MaxPods for %v to be: %v, but it was %v", test.instanceType, test.expected, node.MaxPods())
 		}
 	}
 }
@@ -371,8 +374,8 @@ func TestReservedCPU(t *testing.T) {
 			t.Errorf("unexpected error: %s", err)
 		}
 
-		if node.ReservedCPU != test.expected {
-			t.Errorf("expected ReservedCPU for %v to be: %v, but it was %v", test.instanceType, test.expected, node.ReservedCPU)
+		if node.ReservedCPU() != test.expected {
+			t.Errorf("expected ReservedCPU for %v to be: %v, but it was %v", test.instanceType, test.expected, node.ReservedCPU())
 		}
 	}
 }
@@ -442,8 +445,8 @@ func TestMemory(t *testing.T) {
 			t.Errorf("unexpected error: %s", err)
 		}
 
-		if node.ReservedMemory != test.expected {
-			t.Errorf("expected ReservedMemory for %v to be: %v, but it was %v", test.instanceType, test.expected, node.ReservedMemory)
+		if node.ReservedMemory() != test.expected {
+			t.Errorf("expected ReservedMemory for %v to be: %v, but it was %v", test.instanceType, test.expected, node.ReservedMemory())
 		}
 	}
 }

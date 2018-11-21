@@ -31,11 +31,7 @@ import (
 // Node represents and EC2 instance.
 type Node struct {
 	*ec2.Instance
-	MaxPods        int
-	ReservedCPU    string
-	ReservedMemory string
-	ClusterDNS     string
-	Region         string
+	Region string
 }
 
 type metadataClient interface {
@@ -61,12 +57,8 @@ func New(e ec2iface.EC2API, m metadataClient, region *string) (*Node, error) {
 		}
 		instance := output.Reservations[0].Instances[0]
 		node := Node{
-			Instance:       instance,
-			MaxPods:        maxPods(instance.InstanceType),
-			ReservedCPU:    reservedCPU(instance.InstanceType),
-			ReservedMemory: reservedMemory(instance.InstanceType),
-			ClusterDNS:     clusterDNS(instance.PrivateIpAddress),
-			Region:         *region,
+			Instance: instance,
+			Region:   *region,
 		}
 		if node.ClusterName() == "" {
 			sleepFor := b.Duration(tries)
@@ -92,6 +84,12 @@ func (n *Node) ClusterName() string {
 	return ""
 }
 
+// Labels returns list of kubernetes labels for this node
+//
+// If the node is a spot instance the node-role.kubernetes.io/spot-worker label
+// will be set, otherwise the node-role.kubernetes.io/worker is set.
+//
+// Other custom labels can be set using EC2 tags with the k8s.io/cluster-autoscaler/node-template/label/ prefix
 func (n *Node) Labels() []string {
 	labels := make(map[string]string)
 
@@ -115,6 +113,7 @@ func (n *Node) Labels() []string {
 	return l
 }
 
+// Spot returns true is this node is a spot instance
 func (n *Node) Spot() bool {
 	if n.InstanceLifecycle != nil && *n.InstanceLifecycle == ec2.InstanceLifecycleTypeSpot {
 		return true
@@ -122,6 +121,9 @@ func (n *Node) Spot() bool {
 	return false
 }
 
+// Taints returns a list of kuberntes taints for this node
+//
+// Taints can be set using EC2 tags with the k8s.io/cluster-autoscaler/node-template/taint/ prefix
 func (n *Node) Taints() []string {
 	var taints []string
 	re := regexp.MustCompile(`k8s.io\/cluster-autoscaler\/node-template\/taint\/(.*)`)
@@ -141,20 +143,25 @@ func instanceID(m metadataClient) (*string, error) {
 	return &result, nil
 }
 
-func maxPods(instanceType *string) int {
-	enis := InstanceENIsAvailable[*instanceType]
-	ips := InstanceIPsAvailable[*instanceType]
+// MaxPods returns the maximum number of pods that can be scheduled to this node
+//
+// see https://github.com/aws/amazon-vpc-cni-k8s#setup for more info
+func (n *Node) MaxPods() int {
+	enis := InstanceENIsAvailable[*n.InstanceType]
+	ips := InstanceIPsAvailable[*n.InstanceType]
 	if ips == 0 {
 		return 0
 	}
 	return enis * (ips - 1)
 }
 
+// ReservedCPU returns the CPU in millicores that should be reserved for Kuberntes own use on this node
+//
 // The calculation here is based on information found in the GKE documentation
 // here: https://cloud.google.com/kubernetes-engine/docs/concepts/cluster-architecture
 // I think that it should also apply to AWS
-func reservedCPU(instanceType *string) string {
-	cores := InstanceCores[*instanceType]
+func (n *Node) ReservedCPU() string {
+	cores := InstanceCores[*n.InstanceType]
 	reserved := 0.0
 	for core := 1; core <= cores; core++ {
 		switch core {
@@ -169,17 +176,19 @@ func reservedCPU(instanceType *string) string {
 		}
 	}
 	if reserved == 0.0 {
-		log.Printf("The number of CPU cores is unknown for the %s instance type, --kube-reserved will not be configured", *instanceType)
+		log.Printf("The number of CPU cores is unknown for the %s instance type, --kube-reserved will not be configured", *n.InstanceType)
 		return ""
 	}
 	return fmt.Sprintf("%.0fm", reserved)
 }
 
+// ReservedMemory returns the memory that should be reserved for Kuberntes own use on this node
+//
 // The calculation here is based on information found in the GKE documentation
 // here: https://cloud.google.com/kubernetes-engine/docs/concepts/cluster-architecture
 // I think that it should also apply to AWS
-func reservedMemory(instanceType *string) string {
-	memory := InstanceMemory[*instanceType]
+func (n *Node) ReservedMemory() string {
+	memory := InstanceMemory[*n.InstanceType]
 	reserved := 0.0
 	for i := 0; i < memory; i++ {
 		switch {
@@ -196,14 +205,15 @@ func reservedMemory(instanceType *string) string {
 		}
 	}
 	if reserved == 0.0 {
-		log.Printf("The Memory of the %s instance type is unknown, --kube-reserved will not be configured", *instanceType)
+		log.Printf("The Memory of the %s instance type is unknown, --kube-reserved will not be configured", *n.InstanceType)
 		return ""
 	}
 	return fmt.Sprintf("%.0fMi", reserved)
 }
 
-func clusterDNS(ip *string) string {
-	if ip != nil && len(*ip) > 3 && (*ip)[0:3] == "10." {
+// ClusterDNS returns the in cluster IP address that kube-dns should avalible at
+func (n *Node) ClusterDNS() string {
+	if n.PrivateIpAddress != nil && len(*n.PrivateIpAddress) > 3 && (*n.PrivateIpAddress)[0:3] == "10." {
 		return "172.20.0.10"
 	}
 	return "10.100.0.10"

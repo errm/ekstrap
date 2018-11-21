@@ -33,7 +33,7 @@ func TestConfigure(t *testing.T) {
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "60m", "960Mi", map[string]string{}, false)
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", map[string]string{}, false)
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -117,12 +117,12 @@ Environment='KUBELET_ARGS=--node-ip=10.6.28.199 --cluster-dns=172.20.0.10 --pod-
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/10-kubelet-args.conf", expected, 0640)
 
 	expected = `[Service]
-Environment='KUBELET_MAX_PODS=--max-pods=18'
+Environment='KUBELET_MAX_PODS=--max-pods=27'
 `
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/20-max-pods.conf", expected, 0640)
 
 	expected = `[Service]
-Environment='KUBELET_KUBE_RESERVED=--kube-reserved=cpu=60m,memory=960Mi'
+Environment='KUBELET_KUBE_RESERVED=--kube-reserved=cpu=70m,memory=1024Mi'
 `
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/30-kube-reserved.conf", expected, 0640)
 
@@ -151,38 +151,16 @@ Environment='KUBELET_NODE_LABELS=--node-labels="node-role.kubernetes.io/worker=t
 	}
 }
 
-func TestConfigureNoReserved(t *testing.T) {
-	fs := &FakeFileSystem{}
-	hn := &FakeHostname{}
-	init := &FakeInit{}
-
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", map[string]string{}, false)
-	c := cluster(
-		"aws-om-cluster",
-		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
-		"dGhpc2lzdGhlY2VydGRhdGE=",
-	)
-	system := System{Filesystem: fs, Hostname: hn, Init: init}
-	err := system.Configure(i, c)
-
-	if err != nil {
-		t.Errorf("unexpected error %v", err)
-	}
-
-	expected := `[Service]`
-	fs.Check(t, "/etc/systemd/system/kubelet.service.d/30-kube-reserved.conf", expected, 0640)
-}
-
 func TestConfigureSpotInstanceLabels(t *testing.T) {
 	fs := &FakeFileSystem{}
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	labels := map[string]string{
+	tags := map[string]string{
 		"node-role.kubernetes.io/worker": "true",
 	}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", labels, true)
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", tags, true)
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -210,7 +188,7 @@ func TestConfigureLabels(t *testing.T) {
 		"k8s.io/cluster-autoscaler/node-template/label/gpu-type": "K80",
 	}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", tags, false)
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", tags, false)
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -238,7 +216,7 @@ func TestConfigureTaints(t *testing.T) {
 		"k8s.io/cluster-autoscaler/node-template/taint/node-role.kubernetes.io/worker": "true:PreferNoSchedule",
 	}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", 18, "", "", tags, false)
+	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", tags, false)
 	c := cluster(
 		"aws-om-cluster",
 		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
@@ -257,7 +235,7 @@ Environment='KUBELET_NODE_TAINTS=--register-with-taints="node-role.kubernetes.io
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/50-taints.conf", expected, 0640)
 }
 
-func instance(ip, dnsName string, maxPods int, reservedCPU, reservedMemory string, tags map[string]string, spot bool) *node.Node {
+func instance(ip, dnsName string, tags map[string]string, spot bool) *node.Node {
 	var ec2tags []*ec2.Tag
 	for key, value := range tags {
 		ec2tags = append(ec2tags, &ec2.Tag{
@@ -270,18 +248,16 @@ func instance(ip, dnsName string, maxPods int, reservedCPU, reservedMemory strin
 		il := ec2.InstanceLifecycleTypeSpot
 		instanceLifecycle = &il
 	}
+	instanceType := "c5.large"
 	return &node.Node{
 		Instance: &ec2.Instance{
 			PrivateIpAddress:  &ip,
 			PrivateDnsName:    &dnsName,
 			Tags:              ec2tags,
+			InstanceType:      &instanceType,
 			InstanceLifecycle: instanceLifecycle,
 		},
-		MaxPods:        maxPods,
-		ClusterDNS:     "172.20.0.10",
-		Region:         "us-east-1",
-		ReservedCPU:    reservedCPU,
-		ReservedMemory: reservedMemory,
+		Region: "us-east-1",
 	}
 }
 
