@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
 	"time"
 )
 
@@ -110,6 +111,7 @@ func (n *Node) Labels() []string {
 	for key, value := range labels {
 		l = append(l, key+"="+value)
 	}
+	sort.Strings(l)
 	return l
 }
 
@@ -132,6 +134,7 @@ func (n *Node) Taints() []string {
 			taints = append(taints, matches[1]+"="+*t.Value)
 		}
 	}
+	sort.Strings(taints)
 	return taints
 }
 

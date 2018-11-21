@@ -202,7 +202,7 @@ func TestConfigureLabels(t *testing.T) {
 	}
 
 	expected := `[Service]
-Environment='KUBELET_NODE_LABELS=--node-labels="node-role.kubernetes.io/worker=true,gpu-type=K80"'
+Environment='KUBELET_NODE_LABELS=--node-labels="gpu-type=K80,node-role.kubernetes.io/worker=true"'
 `
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/40-labels.conf", expected, 0640)
 }
