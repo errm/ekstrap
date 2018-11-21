@@ -19,6 +19,7 @@ package node
 import (
 	"errors"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/errm/ekstrap/pkg/backoff"
@@ -71,7 +72,6 @@ func TestNodeLabels(t *testing.T) {
 			{},
 			{
 				tag("kubernetes.io/cluster/cluster-name", "owned"),
-				tag("k8s.io/cluster-autoscaler/node-template/label/node-role.kubernetes.io/spot-worker", "true"),
 				tag("k8s.io/cluster-autoscaler/node-template/label/nvidia-gpu", "K80"),
 			},
 		},
@@ -88,12 +88,37 @@ func TestNodeLabels(t *testing.T) {
 	}
 
 	expected := []string{
+		"node-role.kubernetes.io/worker=true",
+		"nvidia-gpu=K80",
+	}
+
+	if !reflect.DeepEqual(node.Labels(), expected) {
+		t.Errorf("Expected node.Labels to be %v but was %v", expected, node.Labels())
+	}
+
+	e = &mockEC2{
+		tags: [][]*ec2.Tag{
+			{},
+			{},
+			{
+				tag("kubernetes.io/cluster/cluster-name", "owned"),
+				tag("k8s.io/cluster-autoscaler/node-template/label/nvidia-gpu", "K80"),
+			},
+		},
+		instanceLifecycle: ec2.InstanceLifecycleTypeSpot,
+	}
+	node, err = New(e, metadata, &region)
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+
+	expected = []string{
 		"node-role.kubernetes.io/spot-worker=true",
 		"nvidia-gpu=K80",
 	}
 
-	if !reflect.DeepEqual(node.Labels, expected) {
-		t.Errorf("Expected node.Labels to be %v but was %v", expected, node.Labels)
+	if !reflect.DeepEqual(node.Labels(), expected) {
+		t.Errorf("Expected node.Labels to be %v but was %v", expected, node.Labels())
 	}
 }
 
@@ -125,8 +150,8 @@ func TestNodeTaints(t *testing.T) {
 		"dedicated=foo:NoSchedule",
 	}
 
-	if !reflect.DeepEqual(node.Taints, expected) {
-		t.Errorf("Expected node.Taints to be %v but was %v", expected, node.Taints)
+	if !reflect.DeepEqual(node.Taints(), expected) {
+		t.Errorf("Expected node.Taints to be %v but was %v", expected, node.Taints())
 	}
 }
 
@@ -144,8 +169,8 @@ func TestClusterDNS(t *testing.T) {
 		t.Errorf("unexpected error: %s", err)
 	}
 
-	if node.ClusterDNS != "172.20.0.10" {
-		t.Errorf("expected ClusterDNS to be 172.20.0.10 got: %s", node.ClusterDNS)
+	if node.ClusterDNS() != "172.20.0.10" {
+		t.Errorf("expected ClusterDNS to be 172.20.0.10 got: %s", node.ClusterDNS())
 	}
 
 	e = &mockEC2{
@@ -160,8 +185,8 @@ func TestClusterDNS(t *testing.T) {
 		t.Errorf("unexpected error: %s", err)
 	}
 
-	if node.ClusterDNS != "10.100.0.10" {
-		t.Errorf("expected ClusterDNS to be 10.100.0.10 got: %s", node.ClusterDNS)
+	if node.ClusterDNS() != "10.100.0.10" {
+		t.Errorf("expected ClusterDNS to be 10.100.0.10 got: %s", node.ClusterDNS())
 	}
 }
 
@@ -274,8 +299,8 @@ func TestMaxPods(t *testing.T) {
 			t.Errorf("unexpected error: %s", err)
 		}
 
-		if node.MaxPods != test.expected {
-			t.Errorf("expected MaxPods for %v to be: %v, but it was %v", test.instanceType, test.expected, node.MaxPods)
+		if node.MaxPods() != test.expected {
+			t.Errorf("expected MaxPods for %v to be: %v, but it was %v", test.instanceType, test.expected, node.MaxPods())
 		}
 	}
 }
@@ -350,8 +375,8 @@ func TestReservedCPU(t *testing.T) {
 			t.Errorf("unexpected error: %s", err)
 		}
 
-		if node.ReservedCPU != test.expected {
-			t.Errorf("expected ReservedCPU for %v to be: %v, but it was %v", test.instanceType, test.expected, node.ReservedCPU)
+		if node.ReservedCPU() != test.expected {
+			t.Errorf("expected ReservedCPU for %v to be: %v, but it was %v", test.instanceType, test.expected, node.ReservedCPU())
 		}
 	}
 }
@@ -421,10 +446,69 @@ func TestMemory(t *testing.T) {
 			t.Errorf("unexpected error: %s", err)
 		}
 
-		if node.ReservedMemory != test.expected {
-			t.Errorf("expected ReservedMemory for %v to be: %v, but it was %v", test.instanceType, test.expected, node.ReservedMemory)
+		if node.ReservedMemory() != test.expected {
+			t.Errorf("expected ReservedMemory for %v to be: %v, but it was %v", test.instanceType, test.expected, node.ReservedMemory())
 		}
 	}
+}
+
+func TestInstanceTypeInfo(t *testing.T) {
+	expected := keys(InstanceENIsAvailable)
+	tests := []struct {
+		dataset string
+		keys    []string
+	}{
+		{
+			dataset: "InstanceENIsAvailable",
+			keys:    keys(InstanceENIsAvailable),
+		},
+		{
+			dataset: "InstanceIPsAvailable",
+			keys:    keys(InstanceIPsAvailable),
+		},
+		{
+			dataset: "InstanceCores",
+			keys:    keys(InstanceCores),
+		},
+		{
+			dataset: "InstanceMemory",
+			keys:    keys(InstanceMemory),
+		},
+	}
+
+	for _, test := range tests {
+		if !reflect.DeepEqual(test.keys, expected) {
+			t.Errorf("expected %v, had diff %#v", test.dataset, diference(test.keys, expected))
+		}
+	}
+}
+
+func keys(m map[string]int) (ks []string) {
+	for key := range m {
+		ks = append(ks, key)
+	}
+	sort.Strings(ks)
+	return
+}
+
+func diference(a, b []string) (d []string) {
+	d = append(d, diff(a, b)...)
+	d = append(d, diff(b, a)...)
+	return
+}
+
+func diff(a, b []string) (d []string) {
+	m := make(map[string]bool)
+	for _, item := range b {
+		m[item] = true
+	}
+
+	for _, item := range a {
+		if _, ok := m[item]; !ok {
+			d = append(d, item)
+		}
+	}
+	return
 }
 
 func tag(key, value string) *ec2.Tag {
@@ -437,9 +521,10 @@ func tag(key, value string) *ec2.Tag {
 type mockEC2 struct {
 	PrivateIPAddress string
 	ec2iface.EC2API
-	tags         [][]*ec2.Tag
-	instanceType string
-	err          error
+	tags              [][]*ec2.Tag
+	instanceType      string
+	instanceLifecycle string
+	err               error
 }
 
 func (m *mockEC2) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error) {
@@ -449,15 +534,21 @@ func (m *mockEC2) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.Des
 	var tags []*ec2.Tag
 	//Pop the first set of tags
 	tags, m.tags = m.tags[0], m.tags[1:]
+
+	var instanceLifecycle *string
+	if m.instanceLifecycle != "" {
+		instanceLifecycle = &m.instanceLifecycle
+	}
 	if len(input.InstanceIds) > 0 {
 		return &ec2.DescribeInstancesOutput{
 			Reservations: []*ec2.Reservation{{
 				Instances: []*ec2.Instance{
 					{
-						InstanceId:       input.InstanceIds[0],
-						Tags:             tags,
-						InstanceType:     &m.instanceType,
-						PrivateIpAddress: &m.PrivateIPAddress,
+						InstanceId:        input.InstanceIds[0],
+						Tags:              tags,
+						InstanceType:      &m.instanceType,
+						PrivateIpAddress:  &m.PrivateIPAddress,
+						InstanceLifecycle: instanceLifecycle,
 					},
 				},
 			},
