@@ -19,6 +19,7 @@ package node
 import (
 	"errors"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/errm/ekstrap/pkg/backoff"
@@ -449,6 +450,65 @@ func TestMemory(t *testing.T) {
 			t.Errorf("expected ReservedMemory for %v to be: %v, but it was %v", test.instanceType, test.expected, node.ReservedMemory())
 		}
 	}
+}
+
+func TestInstanceTypeInfo(t *testing.T) {
+	expected := keys(InstanceENIsAvailable)
+	tests := []struct {
+		dataset string
+		keys    []string
+	}{
+		{
+			dataset: "InstanceENIsAvailable",
+			keys:    keys(InstanceENIsAvailable),
+		},
+		{
+			dataset: "InstanceIPsAvailable",
+			keys:    keys(InstanceIPsAvailable),
+		},
+		{
+			dataset: "InstanceCores",
+			keys:    keys(InstanceCores),
+		},
+		{
+			dataset: "InstanceMemory",
+			keys:    keys(InstanceMemory),
+		},
+	}
+
+	for _, test := range tests {
+		if !reflect.DeepEqual(test.keys, expected) {
+			t.Errorf("expected %v, had diff %#v", test.dataset, diference(test.keys, expected))
+		}
+	}
+}
+
+func keys(m map[string]int) (ks []string) {
+	for key := range m {
+		ks = append(ks, key)
+	}
+	sort.Strings(ks)
+	return
+}
+
+func diference(a, b []string) (d []string) {
+	d = append(d, diff(a, b)...)
+	d = append(d, diff(b, a)...)
+	return
+}
+
+func diff(a, b []string) (d []string) {
+	m := make(map[string]bool)
+	for _, item := range b {
+		m[item] = true
+	}
+
+	for _, item := range a {
+		if _, ok := m[item]; !ok {
+			d = append(d, item)
+		}
+	}
+	return
 }
 
 func tag(key, value string) *ec2.Tag {
