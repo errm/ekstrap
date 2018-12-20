@@ -1,0 +1,32 @@
+kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+address: 0.0.0.0
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    cacheTTL: 2m0s
+    enabled: true
+  x509:
+    clientCAFile: "/etc/kubernetes/pki/ca.crt"
+authorization:
+  mode: Webhook
+  webhook:
+    cacheAuthorizedTTL: 5m0s
+    cacheUnauthorizedTTL: 30s
+clusterDomain: cluster.local
+clusterDNS: "{{.Node.ClusterDNS}}"
+cgroupDriver: cgroupfs
+featureGates:
+  RotateKubeletServerCertificate: true
+serverTLSBootstrap: true
+{{- if and .Node.ReservedCPU .Node.ReservedMemory }}
+kubeReserved:
+  cpu: "{{.Node.ReservedCPU}}"
+  memory: "{{.Node.ReservedMemory}}"
+{{ end -}}
+maxPods: "{{.Node.MaxPods}}"
+evictionHard:
+  memory.available: 100Mi
+  nodefs.available: 10%
+  nodefs.inodesFree: 5%
