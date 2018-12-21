@@ -46,8 +46,8 @@ func TestConfigure(t *testing.T) {
 		t.Errorf("unexpected error %v", err)
 	}
 
-	if len(fs.files) != 8 {
-		t.Errorf("expected 8 files, got %v", len(fs.files))
+	if len(fs.files) != 7 {
+		t.Errorf("expected 7 files, got %v", len(fs.files))
 	}
 
 	expected := `apiVersion: v1
@@ -84,23 +84,12 @@ Requires=docker.service
 
 [Service]
 ExecStart=/usr/bin/kubelet \
-  --address=0.0.0.0 \
-  --authentication-token-webhook \
-  --authorization-mode=Webhook \
   --allow-privileged=true \
   --cloud-provider=aws \
-  --cluster-domain=cluster.local \
-  --cni-bin-dir=/opt/cni/bin \
-  --cni-conf-dir=/etc/cni/net.d \
+  --config /etc/kubernetes/kubelet/config.yaml \
   --container-runtime=docker \
-  --eviction-hard=memory.available<100Mi,nodefs.available<10%,nodefs.inodesFree<5% \
   --network-plugin=cni \
-  --cgroup-driver=cgroupfs \
-  --register-node=true \
-  --kubeconfig=/var/lib/kubelet/kubeconfig \
-  --feature-gates=RotateKubeletServerCertificate=true \
-  --anonymous-auth=false \
-  --client-ca-file=/etc/kubernetes/pki/ca.crt $KUBELET_ARGS $KUBELET_MAX_PODS $KUBELET_KUBE_RESERVED $KUBELET_NODE_LABELS $KUBELET_NODE_TAINTS $KUBELET_EXTRA_ARGS
+  --kubeconfig=/var/lib/kubelet/kubeconfig $KUBELET_ARGS $KUBELET_NODE_LABELS $KUBELET_NODE_TAINTS $KUBELET_EXTRA_ARGS
 
 Restart=always
 StartLimitInterval=0
@@ -112,27 +101,50 @@ WantedBy=multi-user.target
 	fs.Check(t, "/etc/systemd/system/kubelet.service", expected, 0640)
 
 	expected = `[Service]
-Environment='KUBELET_ARGS=--node-ip=10.6.28.199 --cluster-dns=172.20.0.10 --pod-infra-container-image=602401143452.dkr.ecr.us-east-1.amazonaws.com/eks/pause-amd64:3.1'
+Environment='KUBELET_ARGS=--node-ip=10.6.28.199 --pod-infra-container-image=602401143452.dkr.ecr.us-east-1.amazonaws.com/eks/pause-amd64:3.1'
 `
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/10-kubelet-args.conf", expected, 0640)
 
-	expected = `[Service]
-Environment='KUBELET_MAX_PODS=--max-pods=27'
+	expected = `kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+address: 0.0.0.0
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    cacheTTL: 2m0s
+    enabled: true
+  x509:
+    clientCAFile: "/etc/kubernetes/pki/ca.crt"
+authorization:
+  mode: Webhook
+  webhook:
+    cacheAuthorizedTTL: 5m0s
+    cacheUnauthorizedTTL: 30s
+clusterDomain: cluster.local
+clusterDNS: "172.20.0.10"
+cgroupDriver: cgroupfs
+featureGates:
+  RotateKubeletServerCertificate: true
+serverTLSBootstrap: true
+kubeReserved:
+  cpu: "70m"
+  memory: "1024Mi"
+maxPods: "27"
+evictionHard:
+  memory.available: 100Mi
+  nodefs.available: 10%
+  nodefs.inodesFree: 5%
 `
-	fs.Check(t, "/etc/systemd/system/kubelet.service.d/20-max-pods.conf", expected, 0640)
-
-	expected = `[Service]
-Environment='KUBELET_KUBE_RESERVED=--kube-reserved=cpu=70m,memory=1024Mi'
-`
-	fs.Check(t, "/etc/systemd/system/kubelet.service.d/30-kube-reserved.conf", expected, 0640)
+	fs.Check(t, "/etc/kubernetes/kubelet/config.yaml", expected, 0640)
 
 	expected = `[Service]
 Environment='KUBELET_NODE_LABELS=--node-labels="node-role.kubernetes.io/worker=true"'
 `
-	fs.Check(t, "/etc/systemd/system/kubelet.service.d/40-labels.conf", expected, 0640)
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/20-labels.conf", expected, 0640)
 
 	expected = `[Service]`
-	fs.Check(t, "/etc/systemd/system/kubelet.service.d/50-taints.conf", expected, 0640)
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/30-taints.conf", expected, 0640)
 
 	expected = `thisisthecertdata
 `
@@ -176,7 +188,7 @@ func TestConfigureSpotInstanceLabels(t *testing.T) {
 	expected := `[Service]
 Environment='KUBELET_NODE_LABELS=--node-labels="node-role.kubernetes.io/spot-worker=true"'
 `
-	fs.Check(t, "/etc/systemd/system/kubelet.service.d/40-labels.conf", expected, 0640)
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/20-labels.conf", expected, 0640)
 }
 
 func TestConfigureLabels(t *testing.T) {
@@ -204,7 +216,7 @@ func TestConfigureLabels(t *testing.T) {
 	expected := `[Service]
 Environment='KUBELET_NODE_LABELS=--node-labels="gpu-type=K80,node-role.kubernetes.io/worker=true"'
 `
-	fs.Check(t, "/etc/systemd/system/kubelet.service.d/40-labels.conf", expected, 0640)
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/20-labels.conf", expected, 0640)
 }
 
 func TestConfigureTaints(t *testing.T) {
@@ -232,7 +244,7 @@ func TestConfigureTaints(t *testing.T) {
 	expected := `[Service]
 Environment='KUBELET_NODE_TAINTS=--register-with-taints="node-role.kubernetes.io/worker=true:PreferNoSchedule"'
 `
-	fs.Check(t, "/etc/systemd/system/kubelet.service.d/50-taints.conf", expected, 0640)
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/30-taints.conf", expected, 0640)
 }
 
 func instance(ip, dnsName string, tags map[string]string, spot bool) *node.Node {
