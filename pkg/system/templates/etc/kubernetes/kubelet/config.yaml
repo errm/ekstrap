@@ -15,17 +15,17 @@ authorization:
     cacheAuthorizedTTL: 5m0s
     cacheUnauthorizedTTL: 30s
 clusterDomain: cluster.local
-clusterDNS: "{{.Node.ClusterDNS}}"
+clusterDNS: [{{.Node.ClusterDNS}}]
 cgroupDriver: cgroupfs
 featureGates:
   RotateKubeletServerCertificate: true
 serverTLSBootstrap: true
 {{- if and .Node.ReservedCPU .Node.ReservedMemory }}
 kubeReserved:
-  cpu: "{{.Node.ReservedCPU}}"
-  memory: "{{.Node.ReservedMemory}}"
+  cpu: {{.Node.ReservedCPU}}
+  memory: {{.Node.ReservedMemory}}
 {{ end -}}
-maxPods: "{{.Node.MaxPods}}"
+maxPods: {{.Node.MaxPods}}
 evictionHard:
   memory.available: 100Mi
   nodefs.available: 10%

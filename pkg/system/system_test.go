@@ -122,15 +122,15 @@ authorization:
     cacheAuthorizedTTL: 5m0s
     cacheUnauthorizedTTL: 30s
 clusterDomain: cluster.local
-clusterDNS: "172.20.0.10"
+clusterDNS: [172.20.0.10]
 cgroupDriver: cgroupfs
 featureGates:
   RotateKubeletServerCertificate: true
 serverTLSBootstrap: true
 kubeReserved:
-  cpu: "70m"
-  memory: "1024Mi"
-maxPods: "27"
+  cpu: 70m
+  memory: 1024Mi
+maxPods: 27
 evictionHard:
   memory.available: 100Mi
   nodefs.available: 10%
