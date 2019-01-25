@@ -127,19 +127,13 @@ Will run the tests and build a binary
 
 ### Linting
 
-We run [some](.gometalinter.json) linting processes.
+We run some linting processes on [GolangCI](https://golangci.com)
 
-To run locally:
-
-* First install gometalinter: `make install-linter`.
-* Then run: `make lint`
+To run locally: `make lint`
 
 ## Dependencies
 
 To build ekstrap you need [go](https://golang.org/)
-
-Dependencies are checked into the vendor folder so you can build the project without any extra tools,
-but if you need to change or update them you will need to install [dep](https://golang.github.io/dep/).
 
 If you want a tiny binary, install [upx](https://upx.github.io/) and run the `make compress` task.
 

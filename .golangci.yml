@@ -1,0 +1,13 @@
+linters-settings:
+  lll:
+    line-length: 141
+
+linters:
+  enable-all: true
+  disable:
+  - prealloc
+  - gochecknoglobals
+  - dupl
+
+service:
+  golangci-lint-version: 1.15.x # use the fixed version to not introduce new linters unexpectedly

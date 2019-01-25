@@ -17,9 +17,10 @@ limitations under the License.
 package backoff_test
 
 import (
-	"github.com/errm/ekstrap/pkg/backoff"
 	"testing"
 	"time"
+
+	"github.com/errm/ekstrap/pkg/backoff"
 )
 
 func TestEmptyBackoff(t *testing.T) {
@@ -37,10 +38,12 @@ func TestEmptyBackoff(t *testing.T) {
 func TestJitteredBackoff(t *testing.T) {
 	seq := backoff.Backoff{Seq: []int{1, 2, 4, 8}}
 
+	//nolint:staticcheck
 	if seq.Duration(1) == seq.Duration(1) {
 		t.Error("Jitter should ensure calls are not equal")
 	}
 
+	//nolint:staticcheck
 	if seq.Duration(4) == seq.Duration(4) {
 		t.Error("Jitter should ensure calls are not equal")
 	}

@@ -1,4 +1,0 @@
-{
-  "Skip": ["vendor"],
-  "Enable": ["gofmt", "vet", "gocyclo", "golint", "ineffassign", "misspell"]
-}

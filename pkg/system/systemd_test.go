@@ -62,6 +62,7 @@ func TestEnsureRunning(t *testing.T) {
 		},
 	}
 	for _, tC := range testCases {
+		tC := tC
 		t.Run(tC.desc, func(t *testing.T) {
 			d := &fakeDbusConn{}
 			s := &system.Systemd{Conn: d}
@@ -117,6 +118,7 @@ func TestErrorHandling(t *testing.T) {
 		},
 	}
 	for _, tC := range testCases {
+		tC := tC
 		t.Run(tC.desc, func(t *testing.T) {
 			errs := make(map[string]error)
 			errs[tC.name] = tC.err

@@ -33,12 +33,8 @@ func TestConfigure(t *testing.T) {
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", map[string]string{}, false)
-	c := cluster(
-		"aws-om-cluster",
-		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
-		"dGhpc2lzdGhlY2VydGRhdGE=",
-	)
+	i := instance(map[string]string{}, false)
+	c := cluster()
 	system := System{Filesystem: fs, Hostname: hn, Init: init}
 	err := system.Configure(i, c)
 
@@ -172,12 +168,8 @@ func TestConfigureSpotInstanceLabels(t *testing.T) {
 		"node-role.kubernetes.io/worker": "true",
 	}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", tags, true)
-	c := cluster(
-		"aws-om-cluster",
-		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
-		"dGhpc2lzdGhlY2VydGRhdGE=",
-	)
+	i := instance(tags, true)
+	c := cluster()
 	system := System{Filesystem: fs, Hostname: hn, Init: init}
 	err := system.Configure(i, c)
 
@@ -200,12 +192,8 @@ func TestConfigureLabels(t *testing.T) {
 		"k8s.io/cluster-autoscaler/node-template/label/gpu-type": "K80",
 	}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", tags, false)
-	c := cluster(
-		"aws-om-cluster",
-		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
-		"dGhpc2lzdGhlY2VydGRhdGE=",
-	)
+	i := instance(tags, false)
+	c := cluster()
 	system := System{Filesystem: fs, Hostname: hn, Init: init}
 	err := system.Configure(i, c)
 
@@ -228,12 +216,8 @@ func TestConfigureTaints(t *testing.T) {
 		"k8s.io/cluster-autoscaler/node-template/taint/node-role.kubernetes.io/worker": "true:PreferNoSchedule",
 	}
 
-	i := instance("10.6.28.199", "ip-10-6-28-199.us-west-2.compute.internal", tags, false)
-	c := cluster(
-		"aws-om-cluster",
-		"https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com",
-		"dGhpc2lzdGhlY2VydGRhdGE=",
-	)
+	i := instance(tags, false)
+	c := cluster()
 	system := System{Filesystem: fs, Hostname: hn, Init: init}
 	err := system.Configure(i, c)
 
@@ -247,9 +231,13 @@ Environment='KUBELET_NODE_TAINTS=--register-with-taints="node-role.kubernetes.io
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/30-taints.conf", expected, 0640)
 }
 
-func instance(ip, dnsName string, tags map[string]string, spot bool) *node.Node {
+func instance(tags map[string]string, spot bool) *node.Node {
+	ip := "10.6.28.199"
+	dnsName := "ip-10-6-28-199.us-west-2.compute.internal"
 	var ec2tags []*ec2.Tag
 	for key, value := range tags {
+		key := key
+		value := value
 		ec2tags = append(ec2tags, &ec2.Tag{
 			Key:   &key,
 			Value: &value,
@@ -273,7 +261,10 @@ func instance(ip, dnsName string, tags map[string]string, spot bool) *node.Node 
 	}
 }
 
-func cluster(name, endpoint, cert string) *eks.Cluster {
+func cluster() *eks.Cluster {
+	name := "aws-om-cluster"
+	endpoint := "https://74770F6B05F7A8FB0F02CFB5F7AF530C.yl4.us-west-2.eks.amazonaws.com"
+	cert := "dGhpc2lzdGhlY2VydGRhdGE="
 	status := eks.ClusterStatusActive
 	return &eks.Cluster{
 		Name:     &name,
@@ -291,7 +282,9 @@ type FakeFileSystem struct {
 
 func (f *FakeFileSystem) Sync(data io.Reader, path string, mode os.FileMode) error {
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(data)
+	if _, err := buf.ReadFrom(data); err != nil {
+		return err
+	}
 	log.Printf("saving a file to %v", path)
 	f.files = append(f.files, FakeFile{Path: path, Contents: buf.Bytes(), Mode: mode})
 	return nil

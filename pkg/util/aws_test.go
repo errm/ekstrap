@@ -1,8 +1,9 @@
 package util_test
 
 import (
-	"github.com/errm/ekstrap/pkg/util"
 	"testing"
+
+	"github.com/errm/ekstrap/pkg/util"
 )
 
 func TestIsAWSRegion(t *testing.T) {

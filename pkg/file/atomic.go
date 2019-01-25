@@ -17,13 +17,14 @@ limitations under the License.
 package file
 
 import (
-	"github.com/dchest/safefile"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"syscall"
+
+	"github.com/dchest/safefile"
 )
 
 // Atomic exposes an interface to atomicly write config files to the filesystem
