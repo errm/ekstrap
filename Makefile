@@ -1,3 +1,5 @@
+export GO111MODULE=on
+
 GOCMD=go
 GOBUILD=$(GOCMD) build -ldflags="-s -w"
 GOTEST=$(GOCMD) test
@@ -9,17 +11,17 @@ GOMETALINTER = gometalinter ./...
 GORELEASER = goreleaser release --rm-dist --debug
 
 all: test lint $(BINARY_NAME)
-$(BINARY_NAME): generate
+$(BINARY_NAME): deps generate
 	$(GOBUILD) -o $(BINARY_NAME) -v
 compress: $(BINARY_NAME)
 	strip -x $(BINARY_NAME)
 	$(UPX) $(BINARY_NAME)
-test: generate
+test: deps generate
 	$(GOTEST) -coverprofile=coverage.txt -covermode=count ./...
 install-linter:
 	$(GOCMD) get -u github.com/alecthomas/gometalinter
 	$(GOMETALINTER) --install
-lint:
+lint: deps
 	$(GOMETALINTER)
 release: generate .goreleaser.yml
 	$(GORELEASER)
@@ -30,6 +32,9 @@ install: $(BINARY_NAME)
 generate:
 	$(GOCMD) generate
 clean:
-	rm -rf \
-		./$(BINARY_NAME) \
-		./dist/
+	$(GOCMD) clean
+	rm -rf ./dist/
+deps:
+	$(GOCMD) build -v ./...
+upgrade:
+	$(GOCMD) get -u
