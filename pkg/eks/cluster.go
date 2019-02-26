@@ -73,6 +73,6 @@ func Cluster(svc eksiface.EKSAPI, name string) (*eks.Cluster, error) {
 			tries++
 			continue
 		}
-		return nil, fmt.Errorf("Cannot use the EKS cluster: %s, because it is %s", name, *cluster.Status)
+		return nil, fmt.Errorf("cannot use the EKS cluster: %s, because it is %s", name, *cluster.Status)
 	}
 }

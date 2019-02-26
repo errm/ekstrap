@@ -28,12 +28,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 )
 
-func init() {
+var use1 = "us-east-1"
+var usw2 = "us-west-2"
+
+func disableBackoff() {
 	// An empty backoff just returns 0 all the time so the tests run fast
 	b = backoff.Backoff{}
 }
 
 func TestNewNode(t *testing.T) {
+	disableBackoff()
 	e := &mockEC2{
 		tags: [][]*ec2.Tag{
 			{},
@@ -46,8 +50,7 @@ func TestNewNode(t *testing.T) {
 			"instance-id": "1234",
 		},
 	}
-	region := "us-east-1"
-	node, err := New(e, metadata, &region)
+	node, err := New(e, metadata, &use1)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
@@ -60,12 +63,13 @@ func TestNewNode(t *testing.T) {
 		t.Error("Expected returned node to have cluster-name")
 	}
 
-	if node.Region != region {
-		t.Errorf("Expected %s, to eq %s", node.Region, region)
+	if node.Region != use1 {
+		t.Errorf("Expected %s, to eq %s", node.Region, use1)
 	}
 }
 
 func TestNodeLabels(t *testing.T) {
+	disableBackoff()
 	e := &mockEC2{
 		tags: [][]*ec2.Tag{
 			{},
@@ -81,8 +85,7 @@ func TestNodeLabels(t *testing.T) {
 			"instance-id": "1234",
 		},
 	}
-	region := "us-east-1"
-	node, err := New(e, metadata, &region)
+	node, err := New(e, metadata, &use1)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
@@ -107,7 +110,7 @@ func TestNodeLabels(t *testing.T) {
 		},
 		instanceLifecycle: ec2.InstanceLifecycleTypeSpot,
 	}
-	node, err = New(e, metadata, &region)
+	node, err = New(e, metadata, &use1)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
@@ -123,6 +126,7 @@ func TestNodeLabels(t *testing.T) {
 }
 
 func TestNodeTaints(t *testing.T) {
+	disableBackoff()
 	e := &mockEC2{
 		tags: [][]*ec2.Tag{
 			{},
@@ -140,8 +144,7 @@ func TestNodeTaints(t *testing.T) {
 			"instance-id": "1234",
 		},
 	}
-	region := "us-east-1"
-	node, err := New(e, metadata, &region)
+	node, err := New(e, metadata, &use1)
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
@@ -162,8 +165,7 @@ func TestClusterDNS(t *testing.T) {
 			{tag("kubernetes.io/cluster/cluster-name", "owned")},
 		},
 	}
-	region := "us-east-1"
-	node, err := New(e, mockMetadata{}, &region)
+	node, err := New(e, mockMetadata{}, &use1)
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
@@ -179,7 +181,7 @@ func TestClusterDNS(t *testing.T) {
 			{tag("kubernetes.io/cluster/cluster-name", "owned")},
 		},
 	}
-	node, err = New(e, mockMetadata{}, &region)
+	node, err = New(e, mockMetadata{}, &use1)
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
@@ -197,8 +199,7 @@ func TestNewErrors(t *testing.T) {
 	e := &mockEC2{err: ec2Error}
 	metadata := mockMetadata{err: metadataError}
 
-	region := "us-east-1"
-	_, err := New(e, metadata, &region)
+	_, err := New(e, metadata, &use1)
 	if err != metadataError {
 		t.Errorf("expected error: %s to be %s", err, metadataError)
 	}
@@ -209,7 +210,7 @@ func TestNewErrors(t *testing.T) {
 		},
 	}
 
-	_, err = New(e, metadata, &region)
+	_, err = New(e, metadata, &use1)
 	if err != ec2Error {
 		t.Errorf("expected error: %s to be %s", err, ec2Error)
 	}
@@ -293,8 +294,7 @@ func TestMaxPods(t *testing.T) {
 				"instance-id": "1234",
 			},
 		}
-		region := "us-west-2"
-		node, err := New(e, metadata, &region)
+		node, err := New(e, metadata, &usw2)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -369,8 +369,7 @@ func TestReservedCPU(t *testing.T) {
 				"instance-id": "1234",
 			},
 		}
-		region := "us-west-2"
-		node, err := New(e, metadata, &region)
+		node, err := New(e, metadata, &usw2)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -440,8 +439,7 @@ func TestMemory(t *testing.T) {
 				"instance-id": "1234",
 			},
 		}
-		region := "us-west-2"
-		node, err := New(e, metadata, &region)
+		node, err := New(e, metadata, &usw2)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}

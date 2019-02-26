@@ -1,14 +1,14 @@
 language: go
 
 go:
-  - "1.10.x"
+  - "1.11.x"
 
 services:
   - docker
 
 before_script: bash .travis/setup.sh
 
-script: make
+script: make test ekstrap
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)

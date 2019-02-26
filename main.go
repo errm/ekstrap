@@ -16,7 +16,7 @@ limitations under the License.
 
 package main
 
-//go:generate packr
+//go:generate packr2
 
 import (
 	"log"

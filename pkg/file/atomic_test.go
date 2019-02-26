@@ -18,13 +18,14 @@ package file_test
 
 import (
 	"fmt"
-	pkg "github.com/errm/ekstrap/pkg/file"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	pkg "github.com/errm/ekstrap/pkg/file"
 )
 
 var file = &pkg.Atomic{}
