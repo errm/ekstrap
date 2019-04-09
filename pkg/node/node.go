@@ -32,7 +32,8 @@ import (
 // Node represents and EC2 instance.
 type Node struct {
 	*ec2.Instance
-	Region string
+	Region           string
+	ContainerRuntime string
 }
 
 type metadataClient interface {
@@ -45,7 +46,7 @@ var b = backoff.Backoff{Seq: []int{1, 1, 2}}
 //
 // If the EC2 instance doesn't have the expected kubernetes tag, it will backoff and retry.
 // If it isn't able to query EC2 or there are any other errors, an error will be returned.
-func New(e ec2iface.EC2API, m metadataClient, region *string) (*Node, error) {
+func New(e ec2iface.EC2API, m metadataClient, region *string, containerRuntime string) (*Node, error) {
 	id, err := instanceID(m)
 	if err != nil {
 		return nil, err
@@ -58,8 +59,9 @@ func New(e ec2iface.EC2API, m metadataClient, region *string) (*Node, error) {
 		}
 		instance := output.Reservations[0].Instances[0]
 		node := Node{
-			Instance: instance,
-			Region:   *region,
+			Instance:         instance,
+			Region:           *region,
+			ContainerRuntime: containerRuntime,
 		}
 		if node.ClusterName() == "" {
 			sleepFor := b.Duration(tries)

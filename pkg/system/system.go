@@ -79,7 +79,7 @@ func (s System) Configure(n *node.Node, cluster *eks.Cluster) error {
 
 func (s System) configs() ([]config, error) {
 	configs := []config{}
-	box := packr.NewBox("./templates")
+	box := packr.New("system templates", "./templates")
 	err := box.Walk(func(path string, f packr.File) error {
 		template, err := template.New(path).Funcs(template.FuncMap{"b64dec": base64decode}).Parse(f.String())
 		configs = append(configs, config{

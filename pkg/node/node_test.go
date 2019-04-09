@@ -50,7 +50,7 @@ func TestNewNode(t *testing.T) {
 			"instance-id": "1234",
 		},
 	}
-	node, err := New(e, metadata, &use1)
+	node, err := New(e, metadata, &use1, "docker")
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
@@ -85,7 +85,7 @@ func TestNodeLabels(t *testing.T) {
 			"instance-id": "1234",
 		},
 	}
-	node, err := New(e, metadata, &use1)
+	node, err := New(e, metadata, &use1, "docker")
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
@@ -110,7 +110,7 @@ func TestNodeLabels(t *testing.T) {
 		},
 		instanceLifecycle: ec2.InstanceLifecycleTypeSpot,
 	}
-	node, err = New(e, metadata, &use1)
+	node, err = New(e, metadata, &use1, "docker")
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
@@ -144,7 +144,7 @@ func TestNodeTaints(t *testing.T) {
 			"instance-id": "1234",
 		},
 	}
-	node, err := New(e, metadata, &use1)
+	node, err := New(e, metadata, &use1, "docker")
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
@@ -165,7 +165,7 @@ func TestClusterDNS(t *testing.T) {
 			{tag("kubernetes.io/cluster/cluster-name", "owned")},
 		},
 	}
-	node, err := New(e, mockMetadata{}, &use1)
+	node, err := New(e, mockMetadata{}, &use1, "docker")
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
@@ -181,7 +181,7 @@ func TestClusterDNS(t *testing.T) {
 			{tag("kubernetes.io/cluster/cluster-name", "owned")},
 		},
 	}
-	node, err = New(e, mockMetadata{}, &use1)
+	node, err = New(e, mockMetadata{}, &use1, "docker")
 
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
@@ -199,7 +199,7 @@ func TestNewErrors(t *testing.T) {
 	e := &mockEC2{err: ec2Error}
 	metadata := mockMetadata{err: metadataError}
 
-	_, err := New(e, metadata, &use1)
+	_, err := New(e, metadata, &use1, "docker")
 	if err != metadataError {
 		t.Errorf("expected error: %s to be %s", err, metadataError)
 	}
@@ -210,7 +210,7 @@ func TestNewErrors(t *testing.T) {
 		},
 	}
 
-	_, err = New(e, metadata, &use1)
+	_, err = New(e, metadata, &use1, "docker")
 	if err != ec2Error {
 		t.Errorf("expected error: %s to be %s", err, ec2Error)
 	}
@@ -294,7 +294,7 @@ func TestMaxPods(t *testing.T) {
 				"instance-id": "1234",
 			},
 		}
-		node, err := New(e, metadata, &usw2)
+		node, err := New(e, metadata, &usw2, "docker")
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -369,7 +369,7 @@ func TestReservedCPU(t *testing.T) {
 				"instance-id": "1234",
 			},
 		}
-		node, err := New(e, metadata, &usw2)
+		node, err := New(e, metadata, &usw2, "docker")
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -439,7 +439,7 @@ func TestMemory(t *testing.T) {
 				"instance-id": "1234",
 			},
 		}
-		node, err := New(e, metadata, &usw2)
+		node, err := New(e, metadata, &usw2, "docker")
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}

@@ -1,17 +1,16 @@
 [Unit]
 Description=kubelet: The Kubernetes Node Agent
 Documentation=http://kubernetes.io/docs/
-After=docker.service
-Requires=docker.service
+After={{.Node.ContainerRuntime}}.service
+Requires={{.Node.ContainerRuntime}}.service
 
 [Service]
 ExecStart=/usr/bin/kubelet \
   --allow-privileged=true \
   --cloud-provider=aws \
   --config /etc/kubernetes/kubelet/config.yaml \
-  --container-runtime=docker \
   --network-plugin=cni \
-  --kubeconfig=/var/lib/kubelet/kubeconfig $KUBELET_ARGS $KUBELET_NODE_LABELS $KUBELET_NODE_TAINTS $KUBELET_EXTRA_ARGS
+  --kubeconfig=/var/lib/kubelet/kubeconfig $KUBELET_CONTAINER_RUNTIME_ARGS $KUBELET_ARGS $KUBELET_NODE_LABELS $KUBELET_NODE_TAINTS $KUBELET_EXTRA_ARGS
 
 Restart=always
 StartLimitInterval=0

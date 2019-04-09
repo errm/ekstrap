@@ -17,6 +17,7 @@ limitations under the License.
 package system
 
 import (
+	"errors"
 	"log"
 	"os"
 	"os/exec"
@@ -28,6 +29,7 @@ type dbusConn interface {
 	Reload() error
 	EnableUnitFiles([]string, bool, bool) (bool, []dbus.EnableUnitFileChange, error)
 	RestartUnit(string, string, chan<- string) (int, error)
+	ListUnits() ([]dbus.UnitStatus, error)
 }
 
 // Systemd allows you to interact with the systemd init system.
@@ -54,4 +56,21 @@ func (s *Systemd) SetHostname(hostname string) error {
 	}
 	log.Printf("setting hostname to %s", hostname)
 	return exec.Command("hostnamectl", "set-hostname", hostname).Run()
+}
+
+func (s *Systemd) ContainerRuntime() (string, error) {
+	candidates := map[string]string{
+		"containerd.service": "containerd",
+		"docker.service":     "docker",
+	}
+	units, err := s.Conn.ListUnits()
+	if err != nil {
+		return "", err
+	}
+	for _, unit := range units {
+		if value, ok := candidates[unit.Name]; ok && unit.LoadState == "loaded" {
+			return value, nil
+		}
+	}
+	return "", errors.New("couldn't work out what container runtime is installed")
 }
