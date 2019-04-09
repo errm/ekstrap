@@ -33,7 +33,7 @@ func TestConfigure(t *testing.T) {
 	hn := &FakeHostname{}
 	init := &FakeInit{}
 
-	i := instance(map[string]string{}, false)
+	i := instance(map[string]string{}, false, "docker")
 	c := cluster()
 	system := System{Filesystem: fs, Hostname: hn, Init: init}
 	err := system.Configure(i, c)
@@ -42,8 +42,8 @@ func TestConfigure(t *testing.T) {
 		t.Errorf("unexpected error %v", err)
 	}
 
-	if len(fs.files) != 7 {
-		t.Errorf("expected 7 files, got %v", len(fs.files))
+	if len(fs.files) != 8 {
+		t.Errorf("expected 8 files, got %v", len(fs.files))
 	}
 
 	expected := `apiVersion: v1
@@ -83,9 +83,8 @@ ExecStart=/usr/bin/kubelet \
   --allow-privileged=true \
   --cloud-provider=aws \
   --config /etc/kubernetes/kubelet/config.yaml \
-  --container-runtime=docker \
   --network-plugin=cni \
-  --kubeconfig=/var/lib/kubelet/kubeconfig $KUBELET_ARGS $KUBELET_NODE_LABELS $KUBELET_NODE_TAINTS $KUBELET_EXTRA_ARGS
+  --kubeconfig=/var/lib/kubelet/kubeconfig $KUBELET_CONTAINER_RUNTIME_ARGS $KUBELET_ARGS $KUBELET_NODE_LABELS $KUBELET_NODE_TAINTS $KUBELET_EXTRA_ARGS
 
 Restart=always
 StartLimitInterval=0
@@ -142,6 +141,11 @@ Environment='KUBELET_NODE_LABELS=--node-labels="node-role.kubernetes.io/worker=t
 	expected = `[Service]`
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/30-taints.conf", expected, 0640)
 
+	expected = `[Service]
+Environment="KUBELET_CONTAINER_RUNTIME_ARGS=--container-runtime=docker"
+`
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/40-container-runtime.conf", expected, 0640)
+
 	expected = `thisisthecertdata
 `
 	fs.Check(t, "/etc/kubernetes/pki/ca.crt", expected, 0640)
@@ -168,7 +172,7 @@ func TestConfigureSpotInstanceLabels(t *testing.T) {
 		"node-role.kubernetes.io/worker": "true",
 	}
 
-	i := instance(tags, true)
+	i := instance(tags, true, "docker")
 	c := cluster()
 	system := System{Filesystem: fs, Hostname: hn, Init: init}
 	err := system.Configure(i, c)
@@ -192,7 +196,7 @@ func TestConfigureLabels(t *testing.T) {
 		"k8s.io/cluster-autoscaler/node-template/label/gpu-type": "K80",
 	}
 
-	i := instance(tags, false)
+	i := instance(tags, false, "docker")
 	c := cluster()
 	system := System{Filesystem: fs, Hostname: hn, Init: init}
 	err := system.Configure(i, c)
@@ -216,7 +220,7 @@ func TestConfigureTaints(t *testing.T) {
 		"k8s.io/cluster-autoscaler/node-template/taint/node-role.kubernetes.io/worker": "true:PreferNoSchedule",
 	}
 
-	i := instance(tags, false)
+	i := instance(tags, false, "docker")
 	c := cluster()
 	system := System{Filesystem: fs, Hostname: hn, Init: init}
 	err := system.Configure(i, c)
@@ -231,7 +235,50 @@ Environment='KUBELET_NODE_TAINTS=--register-with-taints="node-role.kubernetes.io
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/30-taints.conf", expected, 0640)
 }
 
-func instance(tags map[string]string, spot bool) *node.Node {
+func TestContainerd(t *testing.T) {
+	fs := &FakeFileSystem{}
+	hn := &FakeHostname{}
+	init := &FakeInit{}
+
+	i := instance(map[string]string{}, false, "containerd")
+	c := cluster()
+	system := System{Filesystem: fs, Hostname: hn, Init: init}
+	err := system.Configure(i, c)
+
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
+
+	expected := `[Unit]
+Description=kubelet: The Kubernetes Node Agent
+Documentation=http://kubernetes.io/docs/
+After=containerd.service
+Requires=containerd.service
+
+[Service]
+ExecStart=/usr/bin/kubelet \
+  --allow-privileged=true \
+  --cloud-provider=aws \
+  --config /etc/kubernetes/kubelet/config.yaml \
+  --network-plugin=cni \
+  --kubeconfig=/var/lib/kubelet/kubeconfig $KUBELET_CONTAINER_RUNTIME_ARGS $KUBELET_ARGS $KUBELET_NODE_LABELS $KUBELET_NODE_TAINTS $KUBELET_EXTRA_ARGS
+
+Restart=always
+StartLimitInterval=0
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+`
+	fs.Check(t, "/etc/systemd/system/kubelet.service", expected, 0640)
+
+	expected = `[Service]
+Environment="KUBELET_CONTAINER_RUNTIME_ARGS=--container-runtime=remote --runtime-request-timeout=15m --container-runtime-endpoint=unix:///run/containerd/containerd.sock --cgroup-driver=systemd"
+`
+	fs.Check(t, "/etc/systemd/system/kubelet.service.d/40-container-runtime.conf", expected, 0640)
+}
+
+func instance(tags map[string]string, spot bool, runtime string) *node.Node {
 	ip := "10.6.28.199"
 	dnsName := "ip-10-6-28-199.us-west-2.compute.internal"
 	var ec2tags []*ec2.Tag
@@ -257,7 +304,8 @@ func instance(tags map[string]string, spot bool) *node.Node {
 			InstanceType:      &instanceType,
 			InstanceLifecycle: instanceLifecycle,
 		},
-		Region: "us-east-1",
+		Region:           "us-east-1",
+		ContainerRuntime: runtime,
 	}
 }
 

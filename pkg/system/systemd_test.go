@@ -30,6 +30,7 @@ type fakeDbusConn struct {
 	restartedUnits  []string
 	enabledUnits    []string
 	errors          map[string]error
+	unitStatuses    []dbus.UnitStatus
 }
 
 func (f *fakeDbusConn) Reload() error {
@@ -45,6 +46,10 @@ func (f *fakeDbusConn) EnableUnitFiles(files []string, runtime, force bool) (boo
 func (f *fakeDbusConn) RestartUnit(name string, mode string, ch chan<- string) (int, error) {
 	f.restartedUnits = append(f.restartedUnits, name)
 	return 0, f.errors["restart"]
+}
+
+func (f *fakeDbusConn) ListUnits() ([]dbus.UnitStatus, error) {
+	return f.unitStatuses, nil
 }
 
 func TestEnsureRunning(t *testing.T) {
@@ -127,6 +132,63 @@ func TestErrorHandling(t *testing.T) {
 			err := s.EnsureRunning("kubelet.service")
 			if err != tC.err {
 				t.Errorf("Got error: %v, expected %v", err, tC.err)
+			}
+		})
+	}
+}
+
+func TestContainerRuntime(t *testing.T) {
+	testCases := []struct {
+		desc         string
+		unitStatuses []dbus.UnitStatus
+		expected     string
+	}{
+		{
+			desc: "When docker is loaded",
+			unitStatuses: []dbus.UnitStatus{
+				{
+					Name:      "docker.service",
+					LoadState: "loaded",
+				},
+			},
+			expected: "docker",
+		},
+		{
+			desc: "When containerd is loaded",
+			unitStatuses: []dbus.UnitStatus{
+				{
+					Name:      "containerd.service",
+					LoadState: "loaded",
+				},
+			},
+			expected: "containerd",
+		},
+		{
+			desc: "When containerd is loaded but a docker unit is also listed (but not loaded)",
+			unitStatuses: []dbus.UnitStatus{
+				{
+					Name:      "docker.service",
+					LoadState: "Not found",
+				},
+				{
+					Name:      "containerd.service",
+					LoadState: "loaded",
+				},
+			},
+			expected: "containerd",
+		},
+	}
+	for _, tC := range testCases {
+		tC := tC
+		t.Run(tC.desc, func(t *testing.T) {
+			d := &fakeDbusConn{unitStatuses: tC.unitStatuses}
+			s := &system.Systemd{Conn: d}
+			runtime, err := s.ContainerRuntime()
+			if err != nil {
+				t.Errorf("Unexpected error:  %v", err)
+			}
+			if runtime != tC.expected {
+				t.Errorf("Expected container runtime %v to be detected, got %v", tC.expected, runtime)
 			}
 		})
 	}
