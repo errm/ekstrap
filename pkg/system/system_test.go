@@ -79,16 +79,18 @@ After=docker.service
 Requires=docker.service
 
 [Service]
+ExecStartPre=/sbin/iptables -P FORWARD ACCEPT
 ExecStart=/usr/bin/kubelet \
   --allow-privileged=true \
   --cloud-provider=aws \
-  --config /etc/kubernetes/kubelet/config.yaml \
+  --config=/etc/kubernetes/kubelet/config.yaml \
   --network-plugin=cni \
   --kubeconfig=/var/lib/kubelet/kubeconfig $KUBELET_CONTAINER_RUNTIME_ARGS $KUBELET_ARGS $KUBELET_NODE_LABELS $KUBELET_NODE_TAINTS $KUBELET_EXTRA_ARGS
 
-Restart=always
-StartLimitInterval=0
+Restart=on-failure
+RestartForceExitStatus=SIGPIPE
 RestartSec=5
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target
@@ -117,11 +119,14 @@ authorization:
     cacheAuthorizedTTL: 5m0s
     cacheUnauthorizedTTL: 30s
 clusterDomain: cluster.local
+hairpinMode: hairpin-veth
 clusterDNS: [172.20.0.10]
 cgroupDriver: cgroupfs
+cgroupRoot: /
 featureGates:
   RotateKubeletServerCertificate: true
 serverTLSBootstrap: true
+serializeImagePulls: false
 kubeReserved:
   cpu: 70m
   memory: 1024Mi
@@ -256,16 +261,18 @@ After=containerd.service
 Requires=containerd.service
 
 [Service]
+ExecStartPre=/sbin/iptables -P FORWARD ACCEPT
 ExecStart=/usr/bin/kubelet \
   --allow-privileged=true \
   --cloud-provider=aws \
-  --config /etc/kubernetes/kubelet/config.yaml \
+  --config=/etc/kubernetes/kubelet/config.yaml \
   --network-plugin=cni \
   --kubeconfig=/var/lib/kubelet/kubeconfig $KUBELET_CONTAINER_RUNTIME_ARGS $KUBELET_ARGS $KUBELET_NODE_LABELS $KUBELET_NODE_TAINTS $KUBELET_EXTRA_ARGS
 
-Restart=always
-StartLimitInterval=0
+Restart=on-failure
+RestartForceExitStatus=SIGPIPE
 RestartSec=5
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target
@@ -273,7 +280,7 @@ WantedBy=multi-user.target
 	fs.Check(t, "/etc/systemd/system/kubelet.service", expected, 0640)
 
 	expected = `[Service]
-Environment="KUBELET_CONTAINER_RUNTIME_ARGS=--container-runtime=remote --runtime-request-timeout=15m --container-runtime-endpoint=unix:///run/containerd/containerd.sock --cgroup-driver=systemd"
+Environment="KUBELET_CONTAINER_RUNTIME_ARGS=--container-runtime=remote --runtime-request-timeout=15m --container-runtime-endpoint=unix:///run/containerd/containerd.sock"
 `
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/40-container-runtime.conf", expected, 0640)
 }
