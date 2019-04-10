@@ -82,7 +82,7 @@ Requires=docker.service
 ExecStart=/usr/bin/kubelet \
   --allow-privileged=true \
   --cloud-provider=aws \
-  --config /etc/kubernetes/kubelet/config.yaml \
+  --config=/etc/kubernetes/kubelet/config.yaml \
   --network-plugin=cni \
   --kubeconfig=/var/lib/kubelet/kubeconfig $KUBELET_CONTAINER_RUNTIME_ARGS $KUBELET_ARGS $KUBELET_NODE_LABELS $KUBELET_NODE_TAINTS $KUBELET_EXTRA_ARGS
 
@@ -259,7 +259,7 @@ Requires=containerd.service
 ExecStart=/usr/bin/kubelet \
   --allow-privileged=true \
   --cloud-provider=aws \
-  --config /etc/kubernetes/kubelet/config.yaml \
+  --config=/etc/kubernetes/kubelet/config.yaml \
   --network-plugin=cni \
   --kubeconfig=/var/lib/kubelet/kubeconfig $KUBELET_CONTAINER_RUNTIME_ARGS $KUBELET_ARGS $KUBELET_NODE_LABELS $KUBELET_NODE_TAINTS $KUBELET_EXTRA_ARGS
 
