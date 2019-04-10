@@ -273,7 +273,7 @@ WantedBy=multi-user.target
 	fs.Check(t, "/etc/systemd/system/kubelet.service", expected, 0640)
 
 	expected = `[Service]
-Environment="KUBELET_CONTAINER_RUNTIME_ARGS=--container-runtime=remote --runtime-request-timeout=15m --container-runtime-endpoint=unix:///run/containerd/containerd.sock --cgroup-driver=systemd"
+Environment="KUBELET_CONTAINER_RUNTIME_ARGS=--container-runtime=remote --runtime-request-timeout=15m --container-runtime-endpoint=unix:///run/containerd/containerd.sock"
 `
 	fs.Check(t, "/etc/systemd/system/kubelet.service.d/40-container-runtime.conf", expected, 0640)
 }
