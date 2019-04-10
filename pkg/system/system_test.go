@@ -79,6 +79,7 @@ After=docker.service
 Requires=docker.service
 
 [Service]
+ExecStartPre=/sbin/iptables -P FORWARD ACCEPT
 ExecStart=/usr/bin/kubelet \
   --allow-privileged=true \
   --cloud-provider=aws \
@@ -86,9 +87,10 @@ ExecStart=/usr/bin/kubelet \
   --network-plugin=cni \
   --kubeconfig=/var/lib/kubelet/kubeconfig $KUBELET_CONTAINER_RUNTIME_ARGS $KUBELET_ARGS $KUBELET_NODE_LABELS $KUBELET_NODE_TAINTS $KUBELET_EXTRA_ARGS
 
-Restart=always
-StartLimitInterval=0
+Restart=on-failure
+RestartForceExitStatus=SIGPIPE
 RestartSec=5
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target
@@ -117,11 +119,14 @@ authorization:
     cacheAuthorizedTTL: 5m0s
     cacheUnauthorizedTTL: 30s
 clusterDomain: cluster.local
+hairpinMode: hairpin-veth
 clusterDNS: [172.20.0.10]
 cgroupDriver: cgroupfs
+cgroupRoot: /
 featureGates:
   RotateKubeletServerCertificate: true
 serverTLSBootstrap: true
+serializeImagePulls: false
 kubeReserved:
   cpu: 70m
   memory: 1024Mi
@@ -256,6 +261,7 @@ After=containerd.service
 Requires=containerd.service
 
 [Service]
+ExecStartPre=/sbin/iptables -P FORWARD ACCEPT
 ExecStart=/usr/bin/kubelet \
   --allow-privileged=true \
   --cloud-provider=aws \
@@ -263,9 +269,10 @@ ExecStart=/usr/bin/kubelet \
   --network-plugin=cni \
   --kubeconfig=/var/lib/kubelet/kubeconfig $KUBELET_CONTAINER_RUNTIME_ARGS $KUBELET_ARGS $KUBELET_NODE_LABELS $KUBELET_NODE_TAINTS $KUBELET_EXTRA_ARGS
 
-Restart=always
-StartLimitInterval=0
+Restart=on-failure
+RestartForceExitStatus=SIGPIPE
 RestartSec=5
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target

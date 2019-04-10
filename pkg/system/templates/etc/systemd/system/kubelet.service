@@ -5,6 +5,7 @@ After={{.Node.ContainerRuntime}}.service
 Requires={{.Node.ContainerRuntime}}.service
 
 [Service]
+ExecStartPre=/sbin/iptables -P FORWARD ACCEPT
 ExecStart=/usr/bin/kubelet \
   --allow-privileged=true \
   --cloud-provider=aws \
@@ -12,9 +13,10 @@ ExecStart=/usr/bin/kubelet \
   --network-plugin=cni \
   --kubeconfig=/var/lib/kubelet/kubeconfig $KUBELET_CONTAINER_RUNTIME_ARGS $KUBELET_ARGS $KUBELET_NODE_LABELS $KUBELET_NODE_TAINTS $KUBELET_EXTRA_ARGS
 
-Restart=always
-StartLimitInterval=0
+Restart=on-failure
+RestartForceExitStatus=SIGPIPE
 RestartSec=5
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target
