@@ -255,6 +255,52 @@ func TestClusterName(t *testing.T) {
 	}
 }
 
+func TestPauseImage(t *testing.T) {
+	arm := Arm64
+	amd := Amd64
+	tests := []struct {
+		node     Node
+		expected string
+	}{
+		{
+
+			node:     Node{Region: "us-east-1", Instance: &ec2.Instance{Architecture: &amd}},
+			expected: "602401143452.dkr.ecr.us-east-1.amazonaws.com/eks/pause-amd64:3.1",
+		},
+		{
+
+			node:     Node{Region: "eu-west-1", Instance: &ec2.Instance{Architecture: &amd}},
+			expected: "602401143452.dkr.ecr.eu-west-1.amazonaws.com/eks/pause-amd64:3.1",
+		},
+		{
+
+			node:     Node{Region: "ap-east-1", Instance: &ec2.Instance{Architecture: &amd}},
+			expected: "800184023465.dkr.ecr.ap-east-1.amazonaws.com/eks/pause-amd64:3.1",
+		},
+		{
+
+			node:     Node{Region: "me-south-1", Instance: &ec2.Instance{Architecture: &amd}},
+			expected: "558608220178.dkr.ecr.me-south-1.amazonaws.com/eks/pause-amd64:3.1",
+		},
+		{
+
+			node:     Node{Region: "us-east-1", Instance: &ec2.Instance{Architecture: &arm}},
+			expected: "602401143452.dkr.ecr.us-east-1.amazonaws.com/eks/pause-arm64:3.1",
+		},
+	}
+
+	for _, test := range tests {
+		actual := test.node.PauseImage()
+		if actual != test.expected {
+			t.Errorf("expected: %s to equal %s", actual, test.expected)
+		}
+	}
+
+	sparc := "sparc"
+	node := Node{Region: "us-east-1", Instance: &ec2.Instance{Architecture: &sparc}}
+	assertPanic(t, "sparc is not a supported machine architecture", node.PauseImage)
+}
+
 func TestMaxPods(t *testing.T) {
 	tests := []struct {
 		instanceType string
@@ -566,4 +612,21 @@ func (m mockMetadata) GetMetadata(key string) (string, error) {
 		return "", m.err
 	}
 	return m.data[key], nil
+}
+
+func assertPanic(t *testing.T, expected string, f func() string) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
+		} else {
+			message, ok := r.(string)
+			if !ok {
+				t.Errorf("panic message not string")
+			}
+			if message != expected {
+				t.Errorf("panic message: %s was not the expected: %s", message, expected)
+			}
+		}
+	}()
+	f()
 }

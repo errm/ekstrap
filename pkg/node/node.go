@@ -223,3 +223,31 @@ func (n *Node) ClusterDNS() string {
 	}
 	return "10.100.0.10"
 }
+
+const (
+	Arm64 = "arm64"
+	Amd64 = "x86_64"
+)
+
+func (n *Node) PauseImage() string {
+	var account, arch string
+	switch n.Region {
+	case "ap-east-1":
+		account = "800184023465"
+	case "me-south-1":
+		account = "558608220178"
+	default:
+		account = "602401143452"
+	}
+
+	switch *n.Architecture {
+	case Amd64:
+		arch = "amd64"
+	case Arm64:
+		arch = "arm64"
+	default:
+		panic(fmt.Sprintf("%s is not a supported machine architecture", *n.Architecture))
+	}
+
+	return account + ".dkr.ecr." + n.Region + ".amazonaws.com/eks/pause-" + arch + ":3.1"
+}
