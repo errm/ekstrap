@@ -29,6 +29,20 @@ import (
 	"time"
 )
 
+const (
+	// eksResourceAccountStandard defines the AWS EKS account ID that
+	// provides node resources in default regions
+	eksResourceAccountStandard = "602401143452"
+
+	// eksResourceAccountAPEast1 defines the AWS EKS account ID that
+	// provides node resources in ap-east-1 region
+	eksResourceAccountAPEast1 = "800184023465"
+
+	// eksResourceAccountMESouth1 defines the AWS EKS account ID that
+	// provides node resources in me-south-1 region
+	eksResourceAccountMESouth1 = "558608220178"
+)
+
 // Node represents and EC2 instance.
 type Node struct {
 	*ec2.Instance
@@ -224,30 +238,29 @@ func (n *Node) ClusterDNS() string {
 	return "10.100.0.10"
 }
 
-const (
-	Arm64 = "arm64"
-	Amd64 = "x86_64"
-)
-
-func (n *Node) PauseImage() string {
-	var account, arch string
+// EKSResourceAccount returns the AWS account id that provides node resources for EKS
+func (n *Node) EKSResourceAccount() string {
 	switch n.Region {
 	case "ap-east-1":
-		account = "800184023465"
+		return eksResourceAccountAPEast1
 	case "me-south-1":
-		account = "558608220178"
+		return eksResourceAccountMESouth1
 	default:
-		account = "602401143452"
+		return eksResourceAccountStandard
 	}
+}
 
-	switch *n.Architecture {
-	case Amd64:
-		arch = "amd64"
-	case Arm64:
-		arch = "arm64"
-	default:
-		panic(fmt.Sprintf("%s is not a supported machine architecture", *n.Architecture))
+// ContainerArchitecture returns a normalised architecture name as used in
+// container image names. If the architecture is unknown: defaults to `amd64`
+func (n *Node) ContainerArchitecture() string {
+	if n.Architecture != nil && *n.Architecture == "arm64" {
+		return *n.Architecture
 	}
+	return "amd64"
+}
 
-	return account + ".dkr.ecr." + n.Region + ".amazonaws.com/eks/pause-" + arch + ":3.1"
+// PauseImage returns the image name of the Pause image provided by AWS
+// to use as the `pod-infra-container-image`
+func (n *Node) PauseImage() string {
+	return n.EKSResourceAccount() + ".dkr.ecr." + n.Region + ".amazonaws.com/eks/pause-" + n.ContainerArchitecture() + ":3.1"
 }
