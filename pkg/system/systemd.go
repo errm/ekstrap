@@ -58,6 +58,8 @@ func (s *Systemd) SetHostname(hostname string) error {
 	return exec.Command("hostnamectl", "set-hostname", hostname).Run()
 }
 
+// ContainerRuntime returns the name of a detected running container runtime
+// will detect containerd or docker, errors if cannot determine
 func (s *Systemd) ContainerRuntime() (string, error) {
 	candidates := map[string]string{
 		"containerd.service": "containerd",
