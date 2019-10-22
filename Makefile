@@ -37,3 +37,5 @@ deps:
 	$(GOCMD) build -v ./...
 upgrade:
 	$(GOCMD) get -u
+update-instance-types:
+	ruby pkg/node/resources.rb
