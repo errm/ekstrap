@@ -303,6 +303,7 @@ func instance(tags map[string]string, spot bool, runtime string) *node.Node {
 		instanceLifecycle = &il
 	}
 	instanceType := "c5.large"
+	arch := "x86_64"
 	return &node.Node{
 		Instance: &ec2.Instance{
 			PrivateIpAddress:  &ip,
@@ -310,6 +311,7 @@ func instance(tags map[string]string, spot bool, runtime string) *node.Node {
 			Tags:              ec2tags,
 			InstanceType:      &instanceType,
 			InstanceLifecycle: instanceLifecycle,
+			Architecture:      &arch,
 		},
 		Region:           "us-east-1",
 		ContainerRuntime: runtime,

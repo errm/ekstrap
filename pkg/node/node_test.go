@@ -255,6 +255,43 @@ func TestClusterName(t *testing.T) {
 	}
 }
 
+func TestPauseImage(t *testing.T) {
+	arm := "arm64"
+	amd := "x86_64"
+	tests := []struct {
+		node     Node
+		expected string
+	}{
+		{
+			node:     Node{Region: "us-east-1", Instance: &ec2.Instance{Architecture: &amd}},
+			expected: "602401143452.dkr.ecr.us-east-1.amazonaws.com/eks/pause-amd64:3.1",
+		},
+		{
+			node:     Node{Region: "eu-west-1", Instance: &ec2.Instance{}},
+			expected: "602401143452.dkr.ecr.eu-west-1.amazonaws.com/eks/pause-amd64:3.1",
+		},
+		{
+			node:     Node{Region: "ap-east-1", Instance: &ec2.Instance{Architecture: &amd}},
+			expected: "800184023465.dkr.ecr.ap-east-1.amazonaws.com/eks/pause-amd64:3.1",
+		},
+		{
+			node:     Node{Region: "me-south-1", Instance: &ec2.Instance{Architecture: &amd}},
+			expected: "558608220178.dkr.ecr.me-south-1.amazonaws.com/eks/pause-amd64:3.1",
+		},
+		{
+			node:     Node{Region: "us-east-1", Instance: &ec2.Instance{Architecture: &arm}},
+			expected: "602401143452.dkr.ecr.us-east-1.amazonaws.com/eks/pause-arm64:3.1",
+		},
+	}
+
+	for _, test := range tests {
+		actual := test.node.PauseImage()
+		if actual != test.expected {
+			t.Errorf("expected: %s to equal %s", actual, test.expected)
+		}
+	}
+}
+
 func TestMaxPods(t *testing.T) {
 	tests := []struct {
 		instanceType string

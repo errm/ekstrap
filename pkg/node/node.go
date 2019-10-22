@@ -29,6 +29,20 @@ import (
 	"time"
 )
 
+const (
+	// eksResourceAccountStandard defines the AWS EKS account ID that
+	// provides node resources in default regions
+	eksResourceAccountStandard = "602401143452"
+
+	// eksResourceAccountAPEast1 defines the AWS EKS account ID that
+	// provides node resources in ap-east-1 region
+	eksResourceAccountAPEast1 = "800184023465"
+
+	// eksResourceAccountMESouth1 defines the AWS EKS account ID that
+	// provides node resources in me-south-1 region
+	eksResourceAccountMESouth1 = "558608220178"
+)
+
 // Node represents and EC2 instance.
 type Node struct {
 	*ec2.Instance
@@ -222,4 +236,31 @@ func (n *Node) ClusterDNS() string {
 		return "172.20.0.10"
 	}
 	return "10.100.0.10"
+}
+
+// EKSResourceAccount returns the AWS account id that provides node resources for EKS
+func (n *Node) EKSResourceAccount() string {
+	switch n.Region {
+	case "ap-east-1":
+		return eksResourceAccountAPEast1
+	case "me-south-1":
+		return eksResourceAccountMESouth1
+	default:
+		return eksResourceAccountStandard
+	}
+}
+
+// ContainerArchitecture returns a normalised architecture name as used in
+// container image names. If the architecture is unknown: defaults to `amd64`
+func (n *Node) ContainerArchitecture() string {
+	if n.Architecture != nil && *n.Architecture == "arm64" {
+		return *n.Architecture
+	}
+	return "amd64"
+}
+
+// PauseImage returns the image name of the Pause image provided by AWS
+// to use as the `pod-infra-container-image`
+func (n *Node) PauseImage() string {
+	return n.EKSResourceAccount() + ".dkr.ecr." + n.Region + ".amazonaws.com/eks/pause-" + n.ContainerArchitecture() + ":3.1"
 }
