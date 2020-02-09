@@ -28,7 +28,7 @@ HERDOC
 
 instance_types = {}
 
-uri = URI("https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.html")
+uri = URI("https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-eni.partial.html")
 doc = Nokogiri::HTML(Net::HTTP.get(uri))
 table = doc.css(".table-contents table")
 table.css("tr").each do |row|
@@ -67,6 +67,7 @@ instance_types = instance_types.reject { |_, i| i[:cpu].nil? or i[:eni].nil? }
 # addresses on the interface, we recommend using a maximum of 31 IP addresses
 # per interface.
 
+
 instance_types["f1.16xlarge"][:ip] = 31
 instance_types["g3.16xlarge"][:ip] = 31
 instance_types["h1.16xlarge"][:ip] = 31
@@ -76,11 +77,22 @@ instance_types["r4.16xlarge"][:ip] = 31
 # Manually fixup memory for some metal instances that are not reported
 # correctly by the API
 #
+instance_types["a1.metal"][:memory] = 32 * 1024
 instance_types["i3.metal"][:memory] = 512 * 1024
 instance_types["i3en.metal"][:memory] = 768 * 1024
 instance_types["r5.metal"][:memory] = 768 * 1024
+instance_types["m5.metal"][:memory] = 384 * 1024
+instance_types["c5.metal"][:memory] = 192 * 1024
 instance_types["r5d.metal"][:memory] = 768 * 1024
+instance_types["c5n.metal"][:memory] = 192 * 1024
+instance_types["c5d.metal"][:memory] = 192 * 1024
+instance_types["m5d.metal"][:memory] = 384 * 1024
 instance_types["z1d.metal"][:memory] = 384 * 1024
+instance_types["u-6tb1.metal"][:memory] = 6291456
+instance_types["u-9tb1.metal"][:memory] = 9437184
+instance_types["u-12tb1.metal"][:memory] = 12582912
+instance_types["u-18tb1.metal"][:memory] = 18874368
+instance_types["u-24tb1.metal"][:memory] = 25165824
 
 file.puts "var InstanceCores = map[string]int{"
 instance_types.each do |type, info|
